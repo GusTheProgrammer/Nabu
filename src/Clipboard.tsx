@@ -13,7 +13,10 @@ const Clipbaord = () => {
         let unlistenMonitor: () => Promise<void>;
 
         onTextUpdate((newText) => {
-            setClipboardItems(prev => [newText, ...prev]);
+            setClipboardItems(prev => {
+                if (prev[0] === newText) return prev;
+                return [newText, ...prev];
+            });
         }).then(unlisten => {
             unlistenText = unlisten;
         });
