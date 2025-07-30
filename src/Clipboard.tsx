@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onTextUpdate, startListening, readText } from 'tauri-plugin-clipboard-api';
 
-const Clipbaord = () => {
+const Clipboard = () => {
     const [clipboardItems, setClipboardItems] = useState<string[]>([]);
 
     useEffect(() => {
@@ -43,4 +43,4 @@ const Clipbaord = () => {
     );
 };
 
-export default Clipbaord;
+export default Clipboard;
