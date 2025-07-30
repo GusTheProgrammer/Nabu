@@ -14,7 +14,7 @@ const Clipboard = () => {
 
         onTextUpdate((newText) => {
             setClipboardItems(prev => {
-                if (prev.length > 0 && prev[0] === newText) return prev;
+                if (prev.includes(newText)) return prev;
                 return [newText, ...prev];
             });
         }).then(unlisten => {
