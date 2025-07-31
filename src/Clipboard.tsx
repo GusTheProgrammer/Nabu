@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onTextUpdate, startListening, readText } from 'tauri-plugin-clipboard-api';
 
-const Clipbaord = () => {
+const Clipboard = () => {
     const [clipboardItems, setClipboardItems] = useState<string[]>([]);
 
     useEffect(() => {
@@ -13,7 +13,10 @@ const Clipbaord = () => {
         let unlistenMonitor: () => Promise<void>;
 
         onTextUpdate((newText) => {
-            setClipboardItems(prev => [newText, ...prev]);
+            setClipboardItems(prev => {
+                if (prev.length > 0 && prev[0] === newText) return prev;
+                return [newText, ...prev];
+            });
         }).then(unlisten => {
             unlistenText = unlisten;
         });
@@ -40,4 +43,4 @@ const Clipbaord = () => {
     );
 };
 
-export default Clipbaord;
+export default Clipboard;
