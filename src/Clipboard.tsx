@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { onTextUpdate, startListening, readText } from 'tauri-plugin-clipboard-api';
 
-import { useRef } from 'react';
-
 const Clipboard = () => {
     const [clipboardItems, setClipboardItems] = useState<string[]>([]);
-    const clipboardSet = useRef(new Set<string>());
 
     useEffect(() => {
         readText().then(text => {
@@ -17,8 +14,7 @@ const Clipboard = () => {
 
         onTextUpdate((newText) => {
             setClipboardItems(prev => {
-                if (clipboardSet.current.has(newText)) return prev;
-                clipboardSet.current.add(newText);
+                if (prev.length > 0 && prev[0] === newText) return prev;
                 return [newText, ...prev];
             });
         }).then(unlisten => {
