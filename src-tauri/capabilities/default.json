@@ -8,6 +8,8 @@
     "opener:default",
     "clipboard:read-all",
     "clipboard:write-all",
-    "clipboard:monitor-all"
+    "clipboard:monitor-all",
+    "sql:default",
+    "sql:allow-execute"
   ]
 }
