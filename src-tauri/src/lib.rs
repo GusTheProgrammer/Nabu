@@ -6,6 +6,7 @@ use tauri::{
 
 use tauri_plugin_global_shortcut::{ShortcutState, GlobalShortcutExt};
 mod shortcuts;
+mod clipboard_metadata;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -58,6 +59,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             shortcuts::get_current_shortcut,
             shortcuts::change_shortcut,
+            clipboard_metadata::get_foreground_window_title,
+            clipboard_metadata::get_clipboard_source_url
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

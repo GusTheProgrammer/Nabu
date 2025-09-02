@@ -9,6 +9,8 @@ export interface ClipboardEntry {
     firstCopiedAt: string;
     lastCopiedAt: string;
     isFavorite: boolean;
+    metadata?: string;
+    sourceUrl?: string;
 }
 
 export interface ClipboardCaptureOptions {
