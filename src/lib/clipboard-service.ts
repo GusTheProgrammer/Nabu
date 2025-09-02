@@ -20,12 +20,12 @@ import {
 
 import clipboardDatabase from "@/lib/db";
 import Logger from "@/util/logger.ts";
-import {ClipboardCaptureOptions, ClipboardContentType, ClipboardEntry} from "@/types/clipboard.ts";
-
+import { ClipboardCaptureOptions, ClipboardContentType, ClipboardEntry } from "@/types/clipboard.ts";
+import { invoke } from "@tauri-apps/api/core"
 
 export const DEFAULT_CAPTURE_OPTIONS: ClipboardCaptureOptions = {
     text: true,
-    html: false,
+    html: true,
     rtf: true,
     image: true,
     files: true,
@@ -34,7 +34,7 @@ export const DEFAULT_CAPTURE_OPTIONS: ClipboardCaptureOptions = {
 class ClipboardService {
     private unlistenFn?: () => Promise<void>;
     private captureOptions = DEFAULT_CAPTURE_OPTIONS;
-    private lastCapturedContent = {content: '', contentType: ''};
+    private lastCapturedContent = { content: '', contentType: '' };
     private eventTarget = new EventTarget();
 
     constructor() {
@@ -57,7 +57,7 @@ class ClipboardService {
         }
 
         try {
-            this.captureOptions = {...DEFAULT_CAPTURE_OPTIONS, ...options};
+            this.captureOptions = { ...DEFAULT_CAPTURE_OPTIONS, ...options };
             this.unlistenFn = await startListening(this.captureOptions);
 
             await this.captureCurrentClipboard();
@@ -79,14 +79,14 @@ class ClipboardService {
     async captureCurrentClipboard() {
         try {
             const contentTypeChecks = [
-                {type: 'image', enabled: this.captureOptions.image, checkFn: hasImage},
-                {type: 'html', enabled: this.captureOptions.html, checkFn: hasHTML},
-                {type: 'rtf', enabled: this.captureOptions.rtf, checkFn: hasRTF},
-                {type: 'file', enabled: this.captureOptions.files, checkFn: hasFiles},
-                {type: 'text', enabled: this.captureOptions.text, checkFn: hasText}
+                { type: 'image', enabled: this.captureOptions.image, checkFn: hasImage },
+                { type: 'html', enabled: this.captureOptions.html, checkFn: hasHTML },
+                { type: 'rtf', enabled: this.captureOptions.rtf, checkFn: hasRTF },
+                { type: 'file', enabled: this.captureOptions.files, checkFn: hasFiles },
+                { type: 'text', enabled: this.captureOptions.text, checkFn: hasText }
             ] as const;
 
-            for (const {type, enabled, checkFn} of contentTypeChecks) {
+            for (const { type, enabled, checkFn } of contentTypeChecks) {
                 if (enabled && await checkFn()) {
                     await this.captureContent(type);
                     break;
@@ -105,14 +105,14 @@ class ClipboardService {
             let updated = false;
 
             const contentTypeChecks = [
-                {type: 'image', enabled: this.captureOptions.image, hasContent: types.image},
-                {type: 'html', enabled: this.captureOptions.html, hasContent: types.html},
-                {type: 'rtf', enabled: this.captureOptions.rtf, hasContent: types.rtf},
-                {type: 'file', enabled: this.captureOptions.files, hasContent: types.files},
-                {type: 'text', enabled: this.captureOptions.text, hasContent: types.text}
+                { type: 'image', enabled: this.captureOptions.image, hasContent: types.image },
+                { type: 'html', enabled: this.captureOptions.html, hasContent: types.html },
+                { type: 'rtf', enabled: this.captureOptions.rtf, hasContent: types.rtf },
+                { type: 'file', enabled: this.captureOptions.files, hasContent: types.files },
+                { type: 'text', enabled: this.captureOptions.text, hasContent: types.text }
             ] as const;
 
-            for (const {type, enabled, hasContent} of contentTypeChecks) {
+            for (const { type, enabled, hasContent } of contentTypeChecks) {
                 if (enabled && hasContent) {
                     updated = await this.captureContent(type);
                     break;
@@ -131,6 +131,8 @@ class ClipboardService {
         try {
             let content = '';
             let preview = '';
+            let sourceUrl = "";
+            let metadata = "";
 
             switch (contentType) {
                 case 'image':
@@ -144,6 +146,7 @@ class ClipboardService {
                 case 'html':
                     content = await readHtml() || '';
                     preview = await readText() || '';
+                    sourceUrl = await this.getClipboardSourceUrl();
                     break;
                 case 'rtf':
                     content = await readRtf() || '';
@@ -164,14 +167,60 @@ class ClipboardService {
                 return false;
             }
 
-            this.lastCapturedContent = {content, contentType};
-            return await clipboardDatabase.saveClipboardEntry(content, contentType, preview);
+            this.lastCapturedContent = { content, contentType };
+            let windowTitle = ""
+            let windowSource = ""
+            try {
+                const windowInfo = await this.getCleanWindowTitle()
+                windowTitle = windowInfo.title
+                windowSource = windowInfo.source
+            } catch (e) {
+                windowTitle = ""
+                windowSource = ""
+            }
+            metadata = `[${windowTitle}] (${windowSource})`
+            return await clipboardDatabase.saveClipboardEntry(content, contentType, preview, metadata, sourceUrl);
         } catch (error) {
             Logger.error(`Error capturing ${contentType}:`, error);
             return false;
         }
     }
+    async getForegroundWindowTitle(): Promise<string> {
+        try {
+            return (await invoke<string>("get_foreground_window_title")) || ""
+        } catch (error) {
+            console.error("Error getting window title:", error)
+            return ""
+        }
+    }
 
+    async getCleanWindowTitle(): Promise<{ title: string; source: string }> {
+        try {
+            const rawTitle = await this.getForegroundWindowTitle()
+            if (!rawTitle) return { title: "", source: "" }
+
+            const parts = rawTitle.split(" - ")
+            let source = ""
+            let title = rawTitle
+
+            if (parts.length > 1) {
+                source = parts[parts.length - 1].trim()
+
+                title = parts
+                    .slice(0, -1)
+                    .join(" - ")
+                    .replace(/\s*and \d+ more pages\s*/i, "")
+                    .replace(/\s*Personal\s*/i, "")
+                    .replace(/\s*-\s*$/, "")
+                    .trim()
+            }
+
+            return { title, source }
+        } catch (error) {
+            console.error("Error cleaning window title:", error)
+            return { title: "", source: "" }
+        }
+    }
     async copyToClipboard(entry: ClipboardEntry) {
         try {
             switch (entry.contentType) {
@@ -199,6 +248,19 @@ class ClipboardService {
         } catch (error) {
             Logger.error('Error copying to clipboard:', error);
             await writeText(entry.content);
+        }
+    }
+
+
+
+    private async getClipboardSourceUrl(): Promise<string> {
+        try {
+            const url = await invoke<string>("get_clipboard_source_url");
+            console.log("Clipboard SourceURL:", url);
+            return url || "";
+        } catch (error) {
+            console.error("Error getting clipboard SourceURL:", error);
+            return "";
         }
     }
 }

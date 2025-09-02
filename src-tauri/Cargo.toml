@@ -25,3 +25,10 @@ serde_json = "1"
 tauri-plugin-clipboard = "2.1.11"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-global-shortcut = "2.3.0"
+winapi = { version = "0.3", features = ["winuser", "psapi", "processthreadsapi"] }
+windows-sys = { version = "0.52", features = [
+  "Win32_Foundation",
+  "Win32_System_Memory",
+  "Win32_System_DataExchange",
+  "Win32_UI_WindowsAndMessaging"
+] }

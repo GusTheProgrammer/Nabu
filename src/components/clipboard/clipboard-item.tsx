@@ -1,8 +1,8 @@
 import React from 'react';
-import {Clipboard, FileText, FileText as FileIcon, Image, Star, StarOff, Trash2} from 'lucide-react';
+import { Clipboard, FileText, FileText as FileIcon, Image, Star, StarOff, Trash2, ExternalLink } from 'lucide-react';
 
-import {ClipboardEntry} from '@/types/clipboard';
-import {Button} from "@/components/ui/button";
+import { ClipboardEntry } from '@/types/clipboard';
+import { Button } from "@/components/ui/button";
 
 interface ClipboardItemProps {
     item: ClipboardEntry;
@@ -11,7 +11,7 @@ interface ClipboardItemProps {
     onDelete: (id: number, event: React.MouseEvent) => Promise<void>;
 }
 
-export const ClipboardItem: React.FC<ClipboardItemProps> = ({item, onCopy, onToggleFavorite, onDelete}) => {
+export const ClipboardItem: React.FC<ClipboardItemProps> = ({ item, onCopy, onToggleFavorite, onDelete }) => {
     const formatDate = (timestamp: string) => {
         const date = new Date(timestamp);
         return date.toLocaleString(undefined, {
@@ -25,14 +25,14 @@ export const ClipboardItem: React.FC<ClipboardItemProps> = ({item, onCopy, onTog
     const renderIcon = () => {
         switch (item.contentType) {
             case 'image':
-                return <Image className="h-4 w-4"/>;
+                return <Image className="h-4 w-4" />;
             case 'html':
             case 'rtf':
-                return <FileText className="h-4 w-4"/>;
+                return <FileText className="h-4 w-4" />;
             case 'file':
-                return <FileIcon className="h-4 w-4"/>;
+                return <FileIcon className="h-4 w-4" />;
             default:
-                return <Clipboard className="h-4 w-4"/>;
+                return <Clipboard className="h-4 w-4" />;
         }
     };
 
@@ -69,10 +69,29 @@ export const ClipboardItem: React.FC<ClipboardItemProps> = ({item, onCopy, onTog
 
                     <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <span className="mr-2">
-                          Copied {item.copy_count} {item.copy_count === 1 ? 'time' : 'times'}
+                            Copied {item.copy_count} {item.copy_count === 1 ? 'time' : 'times'}
                         </span>
                         <span>Last: {formatDate(item.last_copied_at)}</span>
                     </div>
+                    {item.metadata && (
+                        <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span>{item.metadata}</span>
+                        </div>
+                    )}
+                    {item.source_url && (
+                        <div className="flex items-center mt-1">
+                            <ExternalLink className="h-3 w-3 mr-1 text-blue-500" />
+                            <a
+                                href={item.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 underline truncate max-w-xs"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {item.source_url}
+                            </a>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center ml-2">
@@ -83,8 +102,8 @@ export const ClipboardItem: React.FC<ClipboardItemProps> = ({item, onCopy, onTog
                         className="h-8 w-8"
                     >
                         {item.is_favorite ?
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400"/> :
-                            <StarOff className="h-4 w-4"/>
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> :
+                            <StarOff className="h-4 w-4" />
                         }
                     </Button>
 
@@ -94,7 +113,7 @@ export const ClipboardItem: React.FC<ClipboardItemProps> = ({item, onCopy, onTog
                         onClick={(e) => onDelete(item.id, e)}
                         className="h-8 w-8 text-red-500 hover:text-red-700"
                     >
-                        <Trash2 className="h-4 w-4"/>
+                        <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
