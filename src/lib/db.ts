@@ -1,6 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 
-import {ClipboardContentType, ClipboardEntry} from "@/types/clipboard.ts";
+import { ClipboardContentType, ClipboardEntry } from "@/types/clipboard.ts";
 
 class ClipboardDatabase {
     private db: Database | null = null;
@@ -23,7 +23,9 @@ class ClipboardDatabase {
                     copy_count      INTEGER NOT NULL DEFAULT 1,
                     first_copied_at TEXT    NOT NULL,
                     last_copied_at  TEXT    NOT NULL,
-                    is_favorite     BOOLEAN NOT NULL DEFAULT 0
+                    is_favorite     BOOLEAN NOT NULL DEFAULT 0,
+                    metadata        TEXT,
+                    source_url      TEXT
                 )
             `);
 
@@ -35,11 +37,11 @@ class ClipboardDatabase {
     }
 
     async getClipboardEntries({
-                                  limit = 100,
-                                  type,
-                                  favoritesOnly = false,
-                                  searchQuery
-                              }: {
+        limit = 100,
+        type,
+        favoritesOnly = false,
+        searchQuery
+    }: {
         limit?: number,
         type?: ClipboardContentType,
         favoritesOnly?: boolean,
@@ -74,7 +76,7 @@ class ClipboardDatabase {
         return await this.db.select(query, params);
     }
 
-    async saveClipboardEntry(content: string, contentType: ClipboardContentType, preview?: string): Promise<boolean> {
+    async saveClipboardEntry(content: string, contentType: ClipboardContentType, preview?: string, metadata?: string, sourceUrl?: string): Promise<boolean> {
         if (!this.db || !content) return false;
 
         const timestamp = new Date().toISOString();
@@ -85,7 +87,7 @@ class ClipboardDatabase {
         if (existingItem) {
             return this.updateExistingClipboardEntry(existingItem, timestamp);
         } else {
-            return this.insertNewClipboardEntry(normalizedContent, contentType, preview, timestamp);
+            return this.insertNewClipboardEntry(normalizedContent, contentType, preview, timestamp, metadata, sourceUrl);
         }
     }
 
@@ -148,14 +150,16 @@ class ClipboardDatabase {
         contentType: ClipboardContentType,
         preview: string | undefined,
         timestamp: string,
+        metadata?: string,
+        sourceUrl?: string
     ): Promise<boolean> {
         if (!this.db) return false;
 
         const result = await this.db.execute(
             `INSERT INTO clipboard_entries
-             (content, content_type, preview, copy_count, first_copied_at, last_copied_at)
-             VALUES ($1, $2, $3, 1, $4, $5)`,
-            [content, contentType, preview, timestamp, timestamp]
+             (content, content_type, preview, copy_count, first_copied_at, last_copied_at, metadata, source_url)
+             VALUES ($1, $2, $3, 1, $4, $5, $6, $7)`,
+            [content, contentType, preview, timestamp, timestamp, metadata, sourceUrl]
         );
 
         return result.rowsAffected > 0;
