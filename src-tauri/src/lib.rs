@@ -4,13 +4,19 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 };
 
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{ShortcutState, GlobalShortcutExt};
+mod shortcuts;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let app_handle = app.handle(); 
+            let app_handle = app.handle();
+            let default_shortcut = shortcuts::default_shortcut();
+
+            app.manage(shortcuts::AppState {
+                current_shortcut: std::sync::Mutex::new(default_shortcut),
+            });
 
             TrayIconBuilder::<tauri::Wry>::new()
                 .on_tray_icon_event(move |tray, event| {
@@ -20,16 +26,7 @@ pub fn run() {
                             button_state: MouseButtonState::Up,
                             ..
                         } => {
-                            let app = tray.app_handle();
-                            if let Some(window) = app.get_webview_window("main") {
-                                if window.is_visible().unwrap_or(false) {
-                                    let _ = window.hide();
-                                } else {
-                                    let _ = window.unminimize();
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                }
-                            }
+                            shortcuts::toggle_window_visibility(&tray.app_handle());
                         }
                         _ => {},
                     }
@@ -38,32 +35,19 @@ pub fn run() {
 
             #[cfg(desktop)]
             {
-
-                let ctrl_t_shortcut = Shortcut::new(Some(Modifiers::CONTROL), Code::KeyT);
-
                 let shortcut_app_handle = app_handle.clone();
 
                 app_handle.plugin(
                     tauri_plugin_global_shortcut::Builder::new()
-                        .with_handler(move |_app, shortcut, event| {
-                            if shortcut == &ctrl_t_shortcut {
-                                if let ShortcutState::Pressed = event.state() {
-                                    if let Some(window) = shortcut_app_handle.get_webview_window("main") {
-                                        if window.is_visible().unwrap_or(false) {
-                                            let _ = window.hide();
-                                        } else {
-                                            let _ = window.unminimize();
-                                            let _ = window.show();
-                                            let _ = window.set_focus();
-                                        }
-                                    }
-                                }
+                        .with_handler(move |_app, _shortcut, event| {
+                            if let ShortcutState::Pressed = event.state() {
+                                shortcuts::toggle_window_visibility(&shortcut_app_handle);
                             }
                         })
                         .build(),
                 )?;
 
-                app_handle.global_shortcut().register(ctrl_t_shortcut)?;
+                app_handle.global_shortcut().register(default_shortcut)?;
             }
 
             Ok(())
@@ -72,6 +56,8 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            shortcuts::get_current_shortcut,
+            shortcuts::change_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
