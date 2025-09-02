@@ -8,7 +8,7 @@ import {ClipboardEntry} from '@/types/clipboard';
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandList,} from "@/components/ui/command";
 import {Button} from "@/components/ui/button";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
-import {ToggleShortcut} from '@/components/settings/toggle-shortcut.tsx';
+import {ToggleShortcut} from '@/components/settings/toggle-shortcut';
 
 const ClipboardManager: React.FC = () => {
     const [items, setItems] = useState<ClipboardEntry[]>([]);
