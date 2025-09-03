@@ -225,31 +225,31 @@ class ClipboardService {
 
     async copyToClipboard(entry: ClipboardEntry) {
         try {
-            switch (entry.contentType) {
+            switch (entry.previewType) {
                 case 'image':
-                    await writeImageBase64(entry.content);
+                    await writeImageBase64(entry.preview);
                     break;
                 case 'html':
                     const plainText = entry.preview || '';
-                    await writeHtmlAndText(entry.content, plainText).catch(() => writeText(entry.content));
+                    await writeHtmlAndText(entry.preview, plainText).catch(() => writeText(entry.preview));
                     break;
                 case 'rtf':
-                    await writeRtf(entry.content).catch(() => writeText(entry.content));
+                    await writeRtf(entry.preview).catch(() => writeText(entry.preview));
                     break;
                 case 'file':
-                    const files = entry.content.split(/[\n\r]+/).filter(f => f.trim());
+                    const files = entry.preview.split(/[\n\r]+/).filter(f => f.trim());
                     await (files.length > 0
                         ? writeFiles(files)
-                        : writeText(entry.content));
+                        : writeText(entry.preview));
                     break;
                 default:
-                    await writeText(entry.content);
+                    await writeText(entry.preview);
                     break;
             }
             Logger.info('Copied item to clipboard');
         } catch (error) {
             Logger.error('Error copying to clipboard:', error);
-            await writeText(entry.content);
+            await writeText(entry.preview);
         }
     }
 
