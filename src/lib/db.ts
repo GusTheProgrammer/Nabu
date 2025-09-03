@@ -1,6 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 
-import { ClipboardContentType, ClipboardEntry } from "@/types/clipboard.ts";
+import {ClipboardContentType, ClipboardEntry} from "@/types/clipboard.ts";
 
 class ClipboardDatabase {
     private db: Database | null = null;
