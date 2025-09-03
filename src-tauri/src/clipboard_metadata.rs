@@ -27,32 +27,44 @@ pub fn get_clipboard_source_url() -> Option<String> {
     use windows_sys::Win32::System::Memory::*;
 
     unsafe {
-        if OpenClipboard(0) != 0 {
+        if OpenClipboard(0) == 0 {
+            return None;
+        }
+        
+        // Always ensure clipboard gets closed
+        let result = (|| {
             let format = RegisterClipboardFormatA(b"HTML Format\0".as_ptr());
-            if IsClipboardFormatAvailable(format) != 0 {
-                let handle = GetClipboardData(format);
-                if handle != 0 {
-                    // Cast handle (isize) to *mut c_void
-                    let handle_ptr = handle as *mut c_void;
-                    let ptr_data = GlobalLock(handle_ptr) as *const u8;
-                    if !ptr_data.is_null() {
-                        let size = GlobalSize(handle_ptr) as usize;
-                        let slice = std::slice::from_raw_parts(ptr_data, size);
-                        let html = String::from_utf8_lossy(slice).to_string();
-                        GlobalUnlock(handle_ptr);
+            if IsClipboardFormatAvailable(format) == 0 {
+                return None;
+            }
+            
+            let handle = GetClipboardData(format);
+            if handle == 0 {
+                return None;
+            }
 
-                        // Extract SourceURL
-                        for line in html.lines() {
-                            if line.starts_with("SourceURL:") {
-                                return Some(line.trim_start_matches("SourceURL:").to_string());
-                            }
-                        }
-                        return Some("No URL found".to_string());
-                    }
+            let handle_ptr = handle as *mut c_void;
+            let ptr_data = GlobalLock(handle_ptr) as *const u8;
+            if ptr_data.is_null() {
+                return None;
+            }
+
+            let size = GlobalSize(handle_ptr) as usize;
+            let slice = std::slice::from_raw_parts(ptr_data, size);
+            let html = String::from_utf8_lossy(slice).to_string();
+            GlobalUnlock(handle_ptr);
+
+            // Extract SourceURL
+            for line in html.lines() {
+                print!("Line: {}\n", line);
+                if line.starts_with("SourceURL:") {
+                    return Some(line.trim_start_matches("SourceURL:").trim().to_string());
                 }
             }
-            CloseClipboard();
-        }
+            Some("No URL found".to_string())
+        })();
+        
+        CloseClipboard(); // Always close clipboard
+        result
     }
-    None
 }

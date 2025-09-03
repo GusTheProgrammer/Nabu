@@ -6,10 +6,7 @@ import {ThemeProvider} from "@/components/theme-provider.tsx";
 function App() {
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            <main
-                className="flex flex-col items-center justify-center min-h-screen">
-                <h1 className="text-2xl font-bold mb-4">Clipboardy</h1>
-                <ThemeToggle/>
+            <main>
                 <ClipboardManager/>
             </main>
         </ThemeProvider>

@@ -32,3 +32,4 @@ windows-sys = { version = "0.52", features = [
   "Win32_System_DataExchange",
   "Win32_UI_WindowsAndMessaging"
 ] }
+clipboard-win = "4.5"
