@@ -56,3 +56,16 @@ pub fn get_clipboard_source_url() -> Option<String> {
     }
     None
 }
+
+// Non-Windows platforms need stub implementations
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn get_foreground_window_title() -> Option<String> {
+    None
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn get_clipboard_source_url() -> Option<String> {
+    None
+}
