@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Copy, Pin, FileText, Link, Mail, ImageIcon, File, Hash, Minus, Square, X } from "lucide-react"
+import { Search, Copy, FileText, File, Code2, Braces } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -8,11 +8,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { cn } from "@/lib/utils"
 import clipboardDatabase from '@/lib/db';
 import clipboardService from '@/lib/clipboard-service';
-import { ClipboardItem } from '@/components/clipboard/clipboard-item';
 import { ClipboardEntry } from '@/types/clipboard';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, } from "@/components/ui/command";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 // import { ToggleShortcut } from '@/components/settings/toggle-shortcut.tsx';
+
 
 const ClipboardManager: React.FC = () => {
     const [items, setItems] = useState<ClipboardEntry[]>([]);
@@ -20,6 +19,7 @@ const ClipboardManager: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState<ClipboardEntry | null>(null)
+    const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false)
 
     const refreshItems = useCallback(async () => {
         const clipboardItems = await clipboardDatabase.getClipboardEntries({
@@ -62,6 +62,14 @@ const ClipboardManager: React.FC = () => {
         await refreshItems();
     };
 
+    const handleEntryClick = (entry: ClipboardEntry) => {
+        if (selectedEntry?.id === entry.id) {
+            handleCopy(entry);
+        } else {
+            setSelectedEntry(entry);
+        }
+    };
+
     const handleToggleFavorite = async (id: number, event: React.MouseEvent) => {
         event.stopPropagation();
         await clipboardDatabase.toggleFavorite(id);
@@ -80,6 +88,29 @@ const ClipboardManager: React.FC = () => {
             await refreshItems();
         }
     };
+
+    const getEntryIcon = (entry: ClipboardEntry) => {
+        switch (entry.content_type) {
+            case "text":
+                return <FileText className="h-4 w-4 text-gray-400" />
+            case "html":
+                return <Code2 className="h-4 w-4 text-orange-400" />
+            case "rtf":
+                return <Braces className="h-4 w-4 text-purple-400" />
+            case "image":
+                return (
+                    <img
+                        src={`data:image/png;base64,${entry.content}`} // ensure `preview` holds base64/data URL or file path
+                        alt="clipboard preview"
+                        className="h-6 w-6 rounded object-cover"
+                    />
+                )
+            case "file":
+                return <File className="h-4 w-4 text-green-400" />
+            default:
+                return <FileText className="h-4 w-4 text-gray-400" />
+        }
+    }
 
 
     return (
@@ -117,9 +148,20 @@ const ClipboardManager: React.FC = () => {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+                                        onClick={() => selectedEntry && handleCopy(selectedEntry)}
+                                        disabled={!selectedEntry}
+                                        className={cn(
+                                            "h-8 w-8 p-0 transition-colors",
+                                            selectedEntry
+                                                ? "text-blue-400 hover:text-blue-300 hover:bg-gray-700/50"
+                                                : "text-gray-600 cursor-not-allowed"
+                                        )}
+                                        title={selectedEntry ? "Copy selected entry" : "Select an entry to copy"}
                                     >
-                                        <Copy className="h-4 w-4" />
+                                        <Copy className={cn(
+                                            "h-4 w-4 transition-colors",
+                                            selectedEntry ? "text-blue-400" : "text-gray-600"
+                                        )} />
                                     </Button>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -130,61 +172,43 @@ const ClipboardManager: React.FC = () => {
                                     >
                                         ⭐
                                     </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                    >
-                                        ⋯
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                    >
-                                        📋
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                                    >
-                                        📄
-                                    </Button>
                                 </div>
                             </div>
                         </div>
 
                         {/* Entries List */}
-                        <div className="flex-1 overflow-y-auto">
-                            {items.map((entry) => (
-                                <div
-                                    key={entry.id}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors",
-                                        selectedEntry?.id === entry.id && "bg-gray-700/50",
-                                    )}
-                                    onClick={() => {setSelectedEntry(entry); handleCopy(entry); console.log("Entry clicked:", entry);}}
-                                >
-                                    <div className="flex-shrink-0"></div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-gray-200 text-sm truncate">{entry.preview}</div>
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-slate-900/20 scrollbar-thumb-slate-500/60 hover:scrollbar-thumb-slate-400/80 scrollbar-thumb-rounded-full scrollbar-track-rounded-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:bg-transparent [&::-webkit-scrollbar-track]:bg-slate-900/20 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-500/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent hover:[&::-webkit-scrollbar-thumb]:bg-slate-400/80 rtl">
+                            <div className="direction-ltr">
 
+                                {items.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        className={cn(
+                                            "flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors",
+                                            selectedEntry?.id === entry.id && "bg-gray-700/50",
+                                        )}
+                                        onClick={() => handleEntryClick(entry)}
+                                        title={selectedEntry?.id === entry.id ? "Click again to copy" : "Click to preview"}
+                                    >
+                                        <div className="flex-shrink-0">{getEntryIcon(entry)}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-gray-200 text-sm truncate">{entry.preview}</div>
+                                        </div>
+                                        <div className="flex-shrink-0">
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                         {/* Bottom Navigation */}
-                        <div className="p-4 border-t border-gray-700/50 flex items-center justify-between text-xs text-gray-400">
+                        {/* <div className="p-4 border-t border-gray-700/50 flex items-center justify-between text-xs text-gray-400">
                             <div className="flex items-center gap-4">
                                 <span>↑ ↓ Navigate</span>
                             </div>
                             <div>
                                 <span>⌘ Paste to Sketch</span>
                             </div>
-                        </div>
+                        </div> */}
                     </ResizablePanel>
 
                     <ResizableHandle className="w-1 bg-gray-700/50 hover:bg-gray-600 transition-colors" />
@@ -192,9 +216,11 @@ const ClipboardManager: React.FC = () => {
                     {/* Right Panel - Entry Details */}
                     <ResizablePanel
                         defaultSize={30}
-                        minSize={0}
-                        maxSize={60}
+                        minSize={25}
+                        maxSize={50}
                         collapsible={true}
+                        onCollapse={() => setIsRightPanelCollapsed(true)}
+                        onExpand={() => setIsRightPanelCollapsed(false)}
                         className="bg-gray-900/30 flex flex-col"
                     >
                         {selectedEntry ? (
@@ -206,9 +232,17 @@ const ClipboardManager: React.FC = () => {
                                     </div>
 
                                     <div className="p-6">
-                                        <div className="text-gray-200 text-lg font-mono break-all leading-relaxed">
-                                            {selectedEntry.preview}
-                                        </div>
+                                        {selectedEntry.content_type === "image" ? (
+                                            <img
+                                                src={`data:image/png;base64,${selectedEntry.content}`}
+                                                alt="clipboard full preview"
+                                                className="rounded-lg shadow"
+                                            />
+                                        ) : (
+                                            <div className="text-gray-200 text-lg font-mono break-all leading-relaxed">
+                                                {selectedEntry.preview}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -246,27 +280,6 @@ const ClipboardManager: React.FC = () => {
                                             <span className="text-gray-200 text-sm">
                                                 {selectedEntry.preview?.length || 0}
                                             </span>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-gray-700/50">
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleCopy(selectedEntry)}
-                                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                                >
-                                                    <Copy className="h-3 w-3 mr-2" />
-                                                    Copy
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={(e) => handleToggleFavorite(selectedEntry.id, e)}
-                                                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                                                >
-                                                    <Pin className="h-3 w-3" />
-                                                </Button>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

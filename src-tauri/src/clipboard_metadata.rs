@@ -54,21 +54,25 @@ pub fn get_clipboard_source_url() -> Option<String> {
             let html = String::from_utf8_lossy(slice).to_string();
             GlobalUnlock(handle_ptr);
 
-            // Extract SourceURL
+            // Extract SourceURL - removed print statement and improved logic
             for line in html.lines() {
-                print!("Line: {}\n", line);
                 if line.starts_with("SourceURL:") {
-                    return Some(line.trim_start_matches("SourceURL:").trim().to_string());
+                    let url = line.trim_start_matches("SourceURL:").trim();
+                    // Return None if URL is empty instead of empty string
+                    return if url.is_empty() { 
+                        None 
+                    } else { 
+                        Some(url.to_string()) 
+                    };
                 }
             }
-            Some("No URL found".to_string())
+            None // Return None instead of "No URL found" string
         })();
         
         CloseClipboard(); // Always close clipboard
         result
     }
 }
-
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
