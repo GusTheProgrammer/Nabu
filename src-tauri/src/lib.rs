@@ -1,12 +1,9 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use tauri::{
-    Manager,
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
-};
-
+use tauri::{Manager};
 use tauri_plugin_global_shortcut::{ShortcutState, GlobalShortcutExt};
 mod shortcuts;
 mod clipboard_metadata;
+mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,20 +16,7 @@ pub fn run() {
                 current_shortcut: std::sync::Mutex::new(default_shortcut),
             });
 
-            TrayIconBuilder::<tauri::Wry>::new()
-                .on_tray_icon_event(move |tray, event| {
-                    match event {
-                        TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
-                        } => {
-                            shortcuts::toggle_window_visibility(&tray.app_handle());
-                        }
-                        _ => {},
-                    }
-                })
-                .build(app)?;
+            tray::setup_tray(app)?;
 
             #[cfg(desktop)]
             {
@@ -42,7 +26,7 @@ pub fn run() {
                     tauri_plugin_global_shortcut::Builder::new()
                         .with_handler(move |_app, _shortcut, event| {
                             if let ShortcutState::Pressed = event.state() {
-                                shortcuts::toggle_window_visibility(&shortcut_app_handle);
+                                tray::toggle_window_visibility(&shortcut_app_handle);
                             }
                         })
                         .build(),

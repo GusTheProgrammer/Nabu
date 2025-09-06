@@ -1,4 +1,4 @@
-use tauri::{command, AppHandle, Manager, State};
+use tauri::{command, AppHandle, State};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use std::sync::Mutex;
 
@@ -130,16 +130,4 @@ pub fn change_shortcut(app_handle: AppHandle, modifiers: Vec<String>, key: Strin
     *current = new_shortcut;
 
     Ok(())
-}
-
-pub fn toggle_window_visibility(app_handle: &AppHandle) {
-    if let Some(window) = app_handle.get_webview_window("main") {
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.hide();
-        } else {
-            let _ = window.unminimize();
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
-    }
 }
