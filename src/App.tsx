@@ -1,14 +1,17 @@
 import '@/App.css';
-import ClipboardManager from "@/components/clipboard/clipboard-manager.tsx";
-import {ThemeToggle} from "@/components/theme-toggle.tsx";
-import {ThemeProvider} from "@/components/theme-provider.tsx";
+import ClipboardManager from "@/components/clipboard/clipboard-manager";
+import {ThemeProvider} from "@/components/theme-provider";
+import {TitleBar} from "@/components/title-bar";
 
 function App() {
     return (
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-            <main>
-                <ClipboardManager/>
-            </main>
+            <div className="flex flex-col h-screen">
+                <TitleBar/>
+                <main className="flex-1 overflow-auto">
+                    <ClipboardManager/>
+                </main>
+            </div>
         </ThemeProvider>
     );
 }
