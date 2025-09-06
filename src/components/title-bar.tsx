@@ -3,13 +3,14 @@ import {Minus, X} from 'lucide-react';
 
 import {ThemeToggle} from '@/components/theme-toggle';
 import {Button} from "@/components/ui/button.tsx";
+import Logger from "@/util/logger.ts";
 
 export function TitleBar() {
     const minimizeWindow = async () => {
         try {
             await getCurrentWindow().minimize()
         } catch (error) {
-            console.error("Failed to minimize window:", error);
+            Logger.error("Failed to minimize window:", error);
         }
     };
 
@@ -17,7 +18,7 @@ export function TitleBar() {
         try {
             await getCurrentWindow().hide();
         } catch (error) {
-            console.error("Failed to hide window:", error);
+            Logger.error("Failed to hide window:", error);
         }
     };
 
