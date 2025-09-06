@@ -118,3 +118,9 @@
     @apply bg-background text-foreground;
   }
 }
+.rtl {
+  direction: rtl;
+}
+.direction-ltr {
+  direction: ltr;
+}
