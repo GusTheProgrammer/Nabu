@@ -1,16 +1,18 @@
 import {getCurrentWindow} from '@tauri-apps/api/window';
-import {Minus, X} from 'lucide-react';
+import {Cog, Minus, X} from 'lucide-react';
+import {useNavigate} from 'react-router';
 
-import {ThemeToggle} from '@/components/theme-toggle';
-import {Button} from "@/components/ui/button.tsx";
-import Logger from "@/util/logger.ts";
+import {Button} from '@/components/ui/button.tsx';
+import Logger from '@/util/logger.ts';
 
 export function TitleBar() {
+    const navigate = useNavigate();
+
     const minimizeWindow = async () => {
         try {
             await getCurrentWindow().minimize()
         } catch (error) {
-            Logger.error("Failed to minimize window:", error);
+            Logger.error('Failed to minimize window:', error);
         }
     };
 
@@ -18,7 +20,7 @@ export function TitleBar() {
         try {
             await getCurrentWindow().hide();
         } catch (error) {
-            Logger.error("Failed to hide window:", error);
+            Logger.error('Failed to hide window:', error);
         }
     };
 
@@ -32,7 +34,15 @@ export function TitleBar() {
             <div className="flex-1" data-tauri-drag-region/>
 
             <div className="flex items-center gap-1">
-                <ThemeToggle/>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/settings')}
+                    title="Settings"
+                    className="h-8 w-8"
+                >
+                    <Cog size={18}/>
+                </Button>
                 <Button
                     variant="ghost"
                     size="icon"

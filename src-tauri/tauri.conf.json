@@ -13,11 +13,9 @@
     "windows": [
       {
         "title": "clipboardy",
-        "width": 1000,
-        "height": 600,
-        "decorations": false,
-        "visible": false,
-        "resizable": false
+        "minWidth": 1000,
+        "minHeight": 600,
+        "decorations": false
       }
     ],
     "security": {

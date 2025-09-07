@@ -57,6 +57,8 @@ export default defineConfig([
           'newlines-between': 'always',
         },
       ],
+      'quotes': ['error', 'single', { avoidEscape: true }],
+      'object-curly-spacing': ['error', 'never'],
     },
     settings: {
       react: {

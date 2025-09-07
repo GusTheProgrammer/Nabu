@@ -30,14 +30,14 @@ pub fn get_clipboard_source_url() -> Option<String> {
         if OpenClipboard(0) == 0 {
             return None;
         }
-        
+
         // Always ensure clipboard gets closed
         let result = (|| {
             let format = RegisterClipboardFormatA(b"HTML Format\0".as_ptr());
             if IsClipboardFormatAvailable(format) == 0 {
                 return None;
             }
-            
+
             let handle = GetClipboardData(format);
             if handle == 0 {
                 return None;
@@ -59,16 +59,16 @@ pub fn get_clipboard_source_url() -> Option<String> {
                 if line.starts_with("SourceURL:") {
                     let url = line.trim_start_matches("SourceURL:").trim();
                     // Return None if URL is empty instead of empty string
-                    return if url.is_empty() { 
-                        None 
-                    } else { 
-                        Some(url.to_string()) 
+                    return if url.is_empty() {
+                        None
+                    } else {
+                        Some(url.to_string())
                     };
                 }
             }
             None // Return None instead of "No URL found" string
         })();
-        
+
         CloseClipboard(); // Always close clipboard
         result
     }

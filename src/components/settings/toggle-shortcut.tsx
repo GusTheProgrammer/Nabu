@@ -1,28 +1,17 @@
 import {useEffect, useState} from 'react';
 import {useHotkeys} from 'react-hotkeys-hook';
-import {invoke} from '@tauri-apps/api/core';
-import {Keyboard} from 'lucide-react';
+import {platform} from '@tauri-apps/plugin-os';
+
+import {Button} from '@/components/ui/button';
+import {useClipboard} from '@/clipboard-context';
 
 export function ToggleShortcut() {
+    const {currentShortcut, updateShortcut} = useClipboard();
     const [isCapturing, setIsCapturing] = useState(false);
-    const [currentShortcut, setCurrentShortcut] = useState('');
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        async function fetchCurrentShortcut() {
-            try {
-                const [modifiers, key] = await invoke('get_current_shortcut');
-                setCurrentShortcut(formatShortcutForDisplay(modifiers.split('+'), key));
-            } catch (err) {
-                console.error('Failed to get current shortcut:', err);
-            }
-        }
-
-        fetchCurrentShortcut();
-    }, []);
-
-    const formatShortcutForDisplay = (modifiers, key) => {
-        const isMac = navigator.platform.includes('Mac');
+    const formatShortcutForDisplay = (modifiers: string[], key: string) => {
+        const isMac = platform() === 'macos';
         let displayText = '';
 
         modifiers.forEach(mod => {
@@ -33,18 +22,21 @@ export function ToggleShortcut() {
         });
 
         let keyDisplay = key.replace('Key', '').replace('Digit', '');
-
         if (key.startsWith('Arrow')) {
             keyDisplay = key.replace('Arrow', '');
         }
 
-        displayText += keyDisplay;
-        return displayText;
+        return displayText + keyDisplay;
     };
 
     useHotkeys('*', async (event) => {
         if (!isCapturing) return;
         event.preventDefault();
+
+        if (event.code === 'Escape') {
+            setIsCapturing(false);
+            return;
+        }
 
         const modifiers = [];
         if (event.ctrlKey) modifiers.push('ctrl');
@@ -58,17 +50,12 @@ export function ToggleShortcut() {
             event.code.includes('Meta') ||
             event.code.includes('OS');
 
-        if (isModifierKey) {
-            return;
-        }
-
-        if (modifiers.length === 0) return;
+        if (isModifierKey || modifiers.length === 0) return;
 
         setIsCapturing(false);
 
         try {
-            await invoke('change_shortcut', {modifiers, key: event.code});
-            setCurrentShortcut(formatShortcutForDisplay(modifiers, event.code));
+            await updateShortcut({modifiers, key: event.code});
             setError('');
         } catch (err) {
             setError(String(err));
@@ -85,30 +72,24 @@ export function ToggleShortcut() {
         return () => clearTimeout(timeoutId);
     }, [isCapturing]);
 
-    return (
-        <div className="p-4 border rounded-lg dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-3">
-                <Keyboard className="h-5 w-5"/>
-                <span className="font-medium">Toggle Shortcut</span>
-            </div>
+    const displayText = formatShortcutForDisplay(currentShortcut.modifiers, currentShortcut.key);
 
-            <button
-                className={`px-4 py-3 w-full text-left border rounded-md flex items-center justify-between
-          ${isCapturing
-                    ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-800'
-                    : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}
+    return (
+        <div className="space-y-4">
+            <Button
+                variant="outline"
+                className={`w-full justify-between h-auto py-3 px-4 font-normal ${
+                    isCapturing ? 'border-primary bg-primary/5 text-primary hover:bg-primary/10' : 'bg-muted/30 hover:bg-muted/50'
+                }`}
                 onClick={() => setIsCapturing(true)}
                 type="button"
             >
-                <span>{isCapturing ? 'Press keys now...' : currentShortcut || 'Click to set shortcut'}</span>
-                {isCapturing && (
-                    <span className="text-xs text-gray-500">ESC to cancel</span>
-                )}
-            </button>
-
-            {error && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-            )}
+                <span className="font-mono text-sm">
+                  {isCapturing ? 'Press keys now...' : displayText}
+                </span>
+                {isCapturing && <span className="text-xs text-muted-foreground">ESC to cancel</span>}
+            </Button>
+            {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     );
 }

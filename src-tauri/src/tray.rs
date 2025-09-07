@@ -1,7 +1,7 @@
 use tauri::{
-  App, AppHandle, Manager,
-  menu::{Menu, MenuItem},
-  tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    App, AppHandle, Manager,
 };
 
 pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
@@ -9,25 +9,25 @@ pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let menu = Menu::with_items(app, &[&quit_i])?;
 
     TrayIconBuilder::new()
-    .icon(app.default_window_icon().unwrap().clone())
-    .menu(&menu)
-    .show_menu_on_left_click(false)
-    .on_menu_event(|app_handle, event| {
-        if event.id() == "quit" {
-            app_handle.exit(0);
-        }
-    })
-    .on_tray_icon_event(|tray, event| match event {
-        TrayIconEvent::Click {
-          button: MouseButton::Left,
-          button_state: MouseButtonState::Up,
-          ..
-        } => {
-            toggle_window_visibility(&tray.app_handle());
-        }
-        _ => {}
-      })
-    .build(app)?;
+        .icon(app.default_window_icon().unwrap().clone())
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app_handle, event| {
+            if event.id() == "quit" {
+                app_handle.exit(0);
+            }
+        })
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                toggle_window_visibility(&tray.app_handle());
+            }
+            _ => {}
+        })
+        .build(app)?;
 
     Ok(())
 }

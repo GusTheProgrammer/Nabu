@@ -1,19 +1,20 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use tauri::{Manager};
-use tauri_plugin_global_shortcut::{ShortcutState, GlobalShortcutExt};
-mod shortcuts;
+use tauri::Manager;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_autostart::MacosLauncher;
 mod clipboard_metadata;
+mod shortcuts;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--flag1", "--flag2"])))
+        .plugin(tauri_plugin_os::init())
         .setup(|app| {
             let app_handle = app.handle();
-            let default_shortcut = shortcuts::default_shortcut();
 
             app.manage(shortcuts::AppState {
-                current_shortcut: std::sync::Mutex::new(default_shortcut),
+                current_shortcut: std::sync::Mutex::new(shortcuts::default_shortcut()),
             });
 
             tray::setup_tray(app)?;
@@ -32,7 +33,7 @@ pub fn run() {
                         .build(),
                 )?;
 
-                app_handle.global_shortcut().register(default_shortcut)?;
+                let _ = app_handle.global_shortcut().register(shortcuts::default_shortcut());
             }
 
             Ok(())
@@ -41,7 +42,6 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            shortcuts::get_current_shortcut,
             shortcuts::change_shortcut,
             clipboard_metadata::get_foreground_window_title,
             clipboard_metadata::get_clipboard_source_url
