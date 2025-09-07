@@ -13,7 +13,7 @@ const ClipboardPreview: React.FC = () => {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                    <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                    <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4"/>
                     <p className="text-gray-400">Select an entry to view details</p>
                 </div>
             </div>

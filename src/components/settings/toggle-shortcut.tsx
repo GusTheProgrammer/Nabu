@@ -1,28 +1,14 @@
 import {useEffect, useState} from 'react';
 import {useHotkeys} from 'react-hotkeys-hook';
-import {invoke} from '@tauri-apps/api/core';
 import {platform} from '@tauri-apps/plugin-os';
 
 import {Button} from '@/components/ui/button';
-import Logger from '@/util/logger.ts';
+import {useClipboard} from '@/clipboard-context';
 
 export function ToggleShortcut() {
+    const {currentShortcut, updateShortcut} = useClipboard();
     const [isCapturing, setIsCapturing] = useState(false);
-    const [currentShortcut, setCurrentShortcut] = useState('');
     const [error, setError] = useState('');
-
-    useEffect(() => {
-        async function fetchCurrentShortcut() {
-            try {
-                const [modifiers, key] = await invoke('get_current_shortcut') as [string, string];
-                setCurrentShortcut(formatShortcutForDisplay(modifiers.split('+'), key));
-            } catch (err) {
-                Logger.error('Failed to get current shortcut:', err);
-            }
-        }
-
-        fetchCurrentShortcut();
-    }, []);
 
     const formatShortcutForDisplay = (modifiers: string[], key: string) => {
         const isMac = platform() === 'macos';
@@ -36,13 +22,11 @@ export function ToggleShortcut() {
         });
 
         let keyDisplay = key.replace('Key', '').replace('Digit', '');
-
         if (key.startsWith('Arrow')) {
             keyDisplay = key.replace('Arrow', '');
         }
 
-        displayText += keyDisplay;
-        return displayText;
+        return displayText + keyDisplay;
     };
 
     useHotkeys('*', async (event) => {
@@ -66,17 +50,12 @@ export function ToggleShortcut() {
             event.code.includes('Meta') ||
             event.code.includes('OS');
 
-        if (isModifierKey) {
-            return;
-        }
-
-        if (modifiers.length === 0) return;
+        if (isModifierKey || modifiers.length === 0) return;
 
         setIsCapturing(false);
 
         try {
-            await invoke('change_shortcut', {modifiers, key: event.code});
-            setCurrentShortcut(formatShortcutForDisplay(modifiers, event.code));
+            await updateShortcut({modifiers, key: event.code});
             setError('');
         } catch (err) {
             setError(String(err));
@@ -93,6 +72,8 @@ export function ToggleShortcut() {
         return () => clearTimeout(timeoutId);
     }, [isCapturing]);
 
+    const displayText = formatShortcutForDisplay(currentShortcut.modifiers, currentShortcut.key);
+
     return (
         <div className="space-y-4">
             <Button
@@ -104,7 +85,7 @@ export function ToggleShortcut() {
                 type="button"
             >
                 <span className="font-mono text-sm">
-                  {isCapturing ? 'Press keys now...' : currentShortcut || 'Click to set shortcut'}
+                  {isCapturing ? 'Press keys now...' : displayText}
                 </span>
                 {isCapturing && <span className="text-xs text-muted-foreground">ESC to cancel</span>}
             </Button>

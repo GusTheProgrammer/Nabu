@@ -1,8 +1,11 @@
 import React, {createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useReducer} from 'react';
+import {invoke} from '@tauri-apps/api/core';
 
 import {ClipboardEntry} from '@/types/clipboard';
 import clipboardDatabase from '@/lib/db';
 import clipboardService from '@/lib/clipboard-service';
+import {DEFAULT_SHORTCUT, SETTING_KEYS, ShortcutConfig} from '@/types/settings';
+import Logger from '@/util/logger';
 
 interface ClipboardState {
     items: ClipboardEntry[];
@@ -10,7 +13,7 @@ interface ClipboardState {
     searchQuery: string;
     showFavoritesOnly: boolean;
     selectedEntry: ClipboardEntry | null;
-    isRightPanelCollapsed: boolean;
+    currentShortcut: ShortcutConfig;
 }
 
 type ClipboardAction =
@@ -19,8 +22,7 @@ type ClipboardAction =
     | { type: 'SET_SEARCH_QUERY', payload: string }
     | { type: 'TOGGLE_FAVORITES_ONLY' }
     | { type: 'SELECT_ENTRY', payload: ClipboardEntry | null }
-    | { type: 'TOGGLE_RIGHT_PANEL' }
-    | { type: 'SET_RIGHT_PANEL_COLLAPSED', payload: boolean };
+    | { type: 'SET_SHORTCUT', payload: ShortcutConfig };
 
 const initialState: ClipboardState = {
     items: [],
@@ -28,7 +30,7 @@ const initialState: ClipboardState = {
     searchQuery: '',
     showFavoritesOnly: false,
     selectedEntry: null,
-    isRightPanelCollapsed: false,
+    currentShortcut: DEFAULT_SHORTCUT,
 };
 
 function clipboardReducer(state: ClipboardState, action: ClipboardAction): ClipboardState {
@@ -43,10 +45,8 @@ function clipboardReducer(state: ClipboardState, action: ClipboardAction): Clipb
             return {...state, showFavoritesOnly: !state.showFavoritesOnly};
         case 'SELECT_ENTRY':
             return {...state, selectedEntry: action.payload};
-        case 'TOGGLE_RIGHT_PANEL':
-            return {...state, isRightPanelCollapsed: !state.isRightPanelCollapsed};
-        case 'SET_RIGHT_PANEL_COLLAPSED':
-            return {...state, isRightPanelCollapsed: action.payload};
+        case 'SET_SHORTCUT':
+            return {...state, currentShortcut: action.payload};
         default:
             return state;
     }
@@ -56,6 +56,8 @@ type ClipboardContextType = {
     state: ClipboardState;
     dispatch: React.Dispatch<ClipboardAction>;
     refreshItems: () => Promise<void>;
+    currentShortcut: ShortcutConfig;
+    updateShortcut: (shortcut: ShortcutConfig) => Promise<void>;
 };
 
 const ClipboardContext = createContext<ClipboardContextType | undefined>(undefined);
@@ -75,8 +77,41 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
         refreshItems();
     }, [refreshItems]);
 
+    const updateShortcut = useCallback(async (shortcut: ShortcutConfig) => {
+        try {
+            await invoke('change_shortcut', {
+                modifiers: shortcut.modifiers,
+                key: shortcut.key
+            });
+            await clipboardDatabase.setSetting(SETTING_KEYS.TOGGLE_SHORTCUT, shortcut);
+            dispatch({type: 'SET_SHORTCUT', payload: shortcut});
+        } catch (err) {
+            Logger.error('Failed to update shortcut:', err);
+            throw err;
+        }
+    }, []);
+
+    const initializeShortcut = useCallback(async () => {
+        try {
+            const savedShortcut = await clipboardDatabase.getSetting<ShortcutConfig>(
+                SETTING_KEYS.TOGGLE_SHORTCUT,
+                DEFAULT_SHORTCUT
+            );
+
+            await invoke('change_shortcut', {
+                modifiers: savedShortcut.modifiers,
+                key: savedShortcut.key
+            });
+
+            dispatch({type: 'SET_SHORTCUT', payload: savedShortcut});
+        } catch (err) {
+            Logger.error('Failed to initialize shortcut:', err);
+        }
+    }, []);
+
     useEffect(() => {
         const initialize = async () => {
+            await initializeShortcut();
             await clipboardService.startMonitoring();
             await refreshItems();
             dispatch({type: 'INITIALIZE'});
@@ -90,7 +125,7 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
             clipboardService.stopMonitoring();
             clipboardDatabase.close();
         };
-    }, [refreshItems, handleClipboardUpdate]);
+    }, [refreshItems, handleClipboardUpdate, initializeShortcut]);
 
     useEffect(() => {
         if (state.isInitialized) {
@@ -99,8 +134,14 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
     }, [state.showFavoritesOnly, state.searchQuery, state.isInitialized, refreshItems]);
 
     const contextValue = useMemo(() => {
-        return {state, dispatch, refreshItems};
-    }, [state, refreshItems]);
+        return {
+            state,
+            dispatch,
+            refreshItems,
+            currentShortcut: state.currentShortcut,
+            updateShortcut
+        };
+    }, [state, refreshItems, updateShortcut]);
 
     return (
         <ClipboardContext.Provider value={contextValue}>

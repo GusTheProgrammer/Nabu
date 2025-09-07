@@ -6,10 +6,10 @@ import Logger from '@/util/logger.ts';
 class ClipboardDatabase {
     private db: Database | null = null;
     private readonly dbPath = 'sqlite:clipboard_history.db';
-    private initialized = false;
+    private isInitialized = false;
 
     async init() {
-        if (this.initialized) return;
+        if (this.isInitialized) return;
 
         try {
             this.db = await Database.load(this.dbPath);
@@ -30,7 +30,15 @@ class ClipboardDatabase {
                 )
             `);
 
-            this.initialized = true;
+            await this.db.execute(`
+                CREATE TABLE IF NOT EXISTS settings
+                (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            `);
+
+            this.isInitialized = true;
         } catch (err) {
             Logger.error('Failed to initialize database:', err);
             throw err;
@@ -48,6 +56,7 @@ class ClipboardDatabase {
         favoritesOnly?: boolean,
         searchQuery?: string
     } = {}): Promise<ClipboardEntry[]> {
+        await this.init();
         if (!this.db) return [];
 
         const conditions = [];
@@ -74,11 +83,11 @@ class ClipboardDatabase {
         params.push(limit);
         const query = `SELECT * FROM clipboard_entries${whereClause} ORDER BY last_copied_at DESC LIMIT $${paramIndex}`;
 
-        const results = await this.db.select(query, params) as any[];
-        return results.map((entry: any) => this.mapToClipboardEntry(entry));
+        return this.mapToClipboardEntry(await this.db.select(query, params));
     }
 
     async saveClipboardEntry(content: string, contentType: ClipboardContentType, preview?: string, metadata?: string, sourceUrl?: string): Promise<boolean> {
+        await this.init();
         if (!this.db || !content) return false;
 
         const timestamp = new Date().toISOString();
@@ -94,6 +103,7 @@ class ClipboardDatabase {
     }
 
     async toggleFavorite(id: number): Promise<boolean> {
+        await this.init();
         if (!this.db || !id) return false;
 
         const result = await this.db.execute(
@@ -105,6 +115,7 @@ class ClipboardDatabase {
     }
 
     async deleteClipboardEntry(id: number): Promise<boolean> {
+        await this.init();
         if (!this.db || !id) return false;
 
         const result = await this.db.execute('DELETE FROM clipboard_entries WHERE id = $1', [id]);
@@ -112,6 +123,7 @@ class ClipboardDatabase {
     }
 
     async clearAllEntries(keepFavorites: boolean = true): Promise<boolean> {
+        await this.init();
         if (!this.db) return false;
 
         const result = await this.db.execute(`DELETE
@@ -167,8 +179,8 @@ class ClipboardDatabase {
         return result.rowsAffected > 0;
     }
 
-    private mapToClipboardEntry(dbEntry: any): ClipboardEntry {
-        return {
+    private mapToClipboardEntry(results: any[]): ClipboardEntry[] {
+        return results.map(dbEntry => ({
             id: dbEntry.id,
             content: dbEntry.content,
             contentType: dbEntry.content_type as ClipboardContentType,
@@ -179,14 +191,60 @@ class ClipboardDatabase {
             isFavorite: Boolean(dbEntry.is_favorite),
             metadata: dbEntry.metadata,
             sourceUrl: dbEntry.source_url
-        };
+        }));
+    }
+
+    async getSetting<T>(key: string, defaultValue: T): Promise<T> {
+        await this.init();
+        if (!this.db) return defaultValue;
+
+        try {
+            const result = await this.db.select<{ value: string }[]>(
+                'SELECT value FROM settings WHERE key = $1',
+                [key]
+            );
+
+            if (result.length === 0) return defaultValue;
+
+            const value = result[0].value;
+
+            if (typeof defaultValue === 'number') return Number(value) as T;
+            if (typeof defaultValue === 'boolean') return (value === 'true') as T;
+            if (typeof defaultValue === 'object') return JSON.parse(value) as T;
+
+            return value as T;
+        } catch (err) {
+            Logger.error(`Failed to get setting: ${key}`, err);
+            return defaultValue;
+        }
+    }
+
+    async setSetting<T>(key: string, value: T): Promise<boolean> {
+        await this.init();
+        if (!this.db) return false;
+
+        try {
+            const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
+            const result = await this.db.execute(
+                `INSERT INTO settings (key, value)
+                 VALUES ($1, $2)
+                 ON CONFLICT(key) DO UPDATE SET value = $2`,
+                [key, stringValue]
+            );
+
+            return result.rowsAffected > 0;
+        } catch (err) {
+            Logger.error(`Failed to set setting: ${key}`, err);
+            return false;
+        }
     }
 
     async close() {
         if (this.db) {
             await this.db.close();
             this.db = null;
-            this.initialized = false;
+            this.isInitialized = false;
         }
     }
 }
