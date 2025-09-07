@@ -1,7 +1,10 @@
 import {useEffect, useState} from 'react';
 import {useHotkeys} from 'react-hotkeys-hook';
 import {invoke} from '@tauri-apps/api/core';
-import {Keyboard} from 'lucide-react';
+import {platform} from '@tauri-apps/plugin-os';
+
+import {Button} from '@/components/ui/button';
+import Logger from '@/util/logger.ts';
 
 export function ToggleShortcut() {
     const [isCapturing, setIsCapturing] = useState(false);
@@ -11,18 +14,18 @@ export function ToggleShortcut() {
     useEffect(() => {
         async function fetchCurrentShortcut() {
             try {
-                const [modifiers, key] = await invoke('get_current_shortcut');
+                const [modifiers, key] = await invoke('get_current_shortcut') as [string, string];
                 setCurrentShortcut(formatShortcutForDisplay(modifiers.split('+'), key));
             } catch (err) {
-                console.error('Failed to get current shortcut:', err);
+                Logger.error('Failed to get current shortcut:', err);
             }
         }
 
         fetchCurrentShortcut();
     }, []);
 
-    const formatShortcutForDisplay = (modifiers, key) => {
-        const isMac = navigator.platform.includes('Mac');
+    const formatShortcutForDisplay = (modifiers: string[], key: string) => {
+        const isMac = platform() === 'macos';
         let displayText = '';
 
         modifiers.forEach(mod => {
@@ -45,6 +48,11 @@ export function ToggleShortcut() {
     useHotkeys('*', async (event) => {
         if (!isCapturing) return;
         event.preventDefault();
+
+        if (event.code === 'Escape') {
+            setIsCapturing(false);
+            return;
+        }
 
         const modifiers = [];
         if (event.ctrlKey) modifiers.push('ctrl');
@@ -86,29 +94,21 @@ export function ToggleShortcut() {
     }, [isCapturing]);
 
     return (
-        <div className="p-4 border rounded-lg dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-3">
-                <Keyboard className="h-5 w-5"/>
-                <span className="font-medium">Toggle Shortcut</span>
-            </div>
-
-            <button
-                className={`px-4 py-3 w-full text-left border rounded-md flex items-center justify-between
-          ${isCapturing
-                    ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-800'
-                    : 'bg-white dark:bg-gray-800 dark:border-gray-700'}`}
+        <div className="space-y-4">
+            <Button
+                variant="outline"
+                className={`w-full justify-between h-auto py-3 px-4 font-normal ${
+                    isCapturing ? 'border-primary bg-primary/5 text-primary hover:bg-primary/10' : 'bg-muted/30 hover:bg-muted/50'
+                }`}
                 onClick={() => setIsCapturing(true)}
                 type="button"
             >
-                <span>{isCapturing ? 'Press keys now...' : currentShortcut || 'Click to set shortcut'}</span>
-                {isCapturing && (
-                    <span className="text-xs text-gray-500">ESC to cancel</span>
-                )}
-            </button>
-
-            {error && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-            )}
+                <span className="font-mono text-sm">
+                  {isCapturing ? 'Press keys now...' : currentShortcut || 'Click to set shortcut'}
+                </span>
+                {isCapturing && <span className="text-xs text-muted-foreground">ESC to cancel</span>}
+            </Button>
+            {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     );
 }

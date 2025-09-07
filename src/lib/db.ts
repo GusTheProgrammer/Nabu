@@ -1,6 +1,7 @@
-import Database from "@tauri-apps/plugin-sql";
+import Database from '@tauri-apps/plugin-sql';
 
-import {ClipboardContentType, ClipboardEntry} from "@/types/clipboard.ts";
+import {ClipboardContentType, ClipboardEntry} from '@/types/clipboard.ts';
+import Logger from '@/util/logger.ts';
 
 class ClipboardDatabase {
     private db: Database | null = null;
@@ -31,7 +32,7 @@ class ClipboardDatabase {
 
             this.initialized = true;
         } catch (err) {
-            console.error("Failed to initialize database:", err);
+            Logger.error('Failed to initialize database:', err);
             throw err;
         }
     }
@@ -73,7 +74,8 @@ class ClipboardDatabase {
         params.push(limit);
         const query = `SELECT * FROM clipboard_entries${whereClause} ORDER BY last_copied_at DESC LIMIT $${paramIndex}`;
 
-        return await this.db.select(query, params);
+        const results = await this.db.select(query, params) as any[];
+        return results.map((entry: any) => this.mapToClipboardEntry(entry));
     }
 
     async saveClipboardEntry(content: string, contentType: ClipboardContentType, preview?: string, metadata?: string, sourceUrl?: string): Promise<boolean> {
@@ -163,6 +165,21 @@ class ClipboardDatabase {
         );
 
         return result.rowsAffected > 0;
+    }
+
+    private mapToClipboardEntry(dbEntry: any): ClipboardEntry {
+        return {
+            id: dbEntry.id,
+            content: dbEntry.content,
+            contentType: dbEntry.content_type as ClipboardContentType,
+            preview: dbEntry.preview,
+            copyCount: dbEntry.copy_count,
+            firstCopiedAt: dbEntry.first_copied_at,
+            lastCopiedAt: dbEntry.last_copied_at,
+            isFavorite: Boolean(dbEntry.is_favorite),
+            metadata: dbEntry.metadata,
+            sourceUrl: dbEntry.source_url
+        };
     }
 
     async close() {

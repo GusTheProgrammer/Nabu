@@ -1,6 +1,6 @@
+use std::sync::Mutex;
 use tauri::{command, AppHandle, State};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
-use std::sync::Mutex;
 
 pub struct AppState {
     pub current_shortcut: Mutex<Shortcut>,
@@ -16,10 +16,18 @@ pub fn get_current_shortcut(state: State<AppState>) -> (String, String) {
 
     let modifiers_str = {
         let mut parts = Vec::new();
-        if shortcut.mods.contains(Modifiers::CONTROL) { parts.push("ctrl"); }
-        if shortcut.mods.contains(Modifiers::ALT) { parts.push("alt"); }
-        if shortcut.mods.contains(Modifiers::SHIFT) { parts.push("shift"); }
-        if shortcut.mods.contains(Modifiers::META) { parts.push("meta"); }
+        if shortcut.mods.contains(Modifiers::CONTROL) {
+            parts.push("ctrl");
+        }
+        if shortcut.mods.contains(Modifiers::ALT) {
+            parts.push("alt");
+        }
+        if shortcut.mods.contains(Modifiers::SHIFT) {
+            parts.push("shift");
+        }
+        if shortcut.mods.contains(Modifiers::META) {
+            parts.push("meta");
+        }
 
         if parts.is_empty() {
             "none".to_string()
@@ -34,7 +42,12 @@ pub fn get_current_shortcut(state: State<AppState>) -> (String, String) {
 }
 
 #[command]
-pub fn change_shortcut(app_handle: AppHandle, modifiers: Vec<String>, key: String, state: State<AppState>) -> Result<(), String> {
+pub fn change_shortcut(
+    app_handle: AppHandle,
+    modifiers: Vec<String>,
+    key: String,
+    state: State<AppState>,
+) -> Result<(), String> {
     let mut modifier_flags = Modifiers::empty();
 
     for modifier in modifiers {
@@ -47,7 +60,11 @@ pub fn change_shortcut(app_handle: AppHandle, modifiers: Vec<String>, key: Strin
         }
     }
 
-    let modifiers = if modifier_flags.is_empty() { None } else { Some(modifier_flags) };
+    let modifiers = if modifier_flags.is_empty() {
+        None
+    } else {
+        Some(modifier_flags)
+    };
 
     let code = match key.as_str() {
         "KeyA" => Code::KeyA,

@@ -1,13 +1,14 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use tauri::{Manager};
-use tauri_plugin_global_shortcut::{ShortcutState, GlobalShortcutExt};
-mod shortcuts;
+use tauri::Manager;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 mod clipboard_metadata;
+mod shortcuts;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .setup(|app| {
             let app_handle = app.handle();
             let default_shortcut = shortcuts::default_shortcut();
