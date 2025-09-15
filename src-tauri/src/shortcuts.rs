@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use tauri::{command, AppHandle, State};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, ShortcutState, Modifiers, Shortcut};
+use crate::tray;
 
 pub struct AppState {
     pub current_shortcut: Mutex<Shortcut>,
@@ -8,6 +9,30 @@ pub struct AppState {
 
 pub fn default_shortcut() -> Shortcut {
     Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space)
+}
+
+pub fn init_shortcut_state() -> AppState {
+    AppState {
+        current_shortcut: Mutex::new(default_shortcut()),
+    }
+}
+
+#[cfg(desktop)]
+pub fn setup_shortcut_handler(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let shortcut_app_handle = app_handle.clone();
+
+    app_handle.plugin(
+        tauri_plugin_global_shortcut::Builder::new()
+            .with_handler(move |_app, _shortcut, event| {
+                if let ShortcutState::Pressed = event.state() {
+                    tray::toggle_window_visibility(&shortcut_app_handle);
+                }
+            })
+            .build(),
+    )?;
+
+    app_handle.global_shortcut().register(default_shortcut())?;
+    Ok(())
 }
 
 #[command]

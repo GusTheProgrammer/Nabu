@@ -33,11 +33,21 @@ pub fn setup_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub fn toggle_window_visibility(app_handle: &AppHandle) {
-    if let Some(window) = app_handle.get_webview_window("main") {
-        if window.is_visible().unwrap_or(false) {
+    let Some(window) = app_handle.get_webview_window("main") else {
+        return;
+    };
+
+    let is_visible = window.is_visible().unwrap_or(false);
+    let is_focused = window.is_focused().unwrap_or(false);
+
+    match (is_visible, is_focused) {
+        (true, true) => {
             let _ = window.hide();
-        } else {
-            let _ = window.unminimize();
+        }
+        (true, false) => {
+            let _ = window.set_focus();
+        }
+        (false, _) => {
             let _ = window.show();
             let _ = window.set_focus();
         }

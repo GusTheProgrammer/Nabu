@@ -1,4 +1,4 @@
-export type ClipboardContentType = 'text' | 'html' | 'rtf' | 'image' | 'file';
+export type ClipboardContentType = 'text' | 'html' | 'rtf' | 'image' | 'file' | 'link' | 'email' | 'color';
 
 export interface ClipboardEntry {
     id: number;

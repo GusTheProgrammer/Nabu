@@ -12,7 +12,7 @@ interface ClipboardState {
     isInitialized: boolean;
     searchQuery: string;
     showFavoritesOnly: boolean;
-    selectedEntry: ClipboardEntry | null;
+    selectedClipboardEntry: ClipboardEntry | null;
     currentShortcut: ShortcutConfig;
 }
 
@@ -21,7 +21,7 @@ type ClipboardAction =
     | { type: 'SET_CLIPBOARD_ITEMS', payload: ClipboardEntry[] }
     | { type: 'SET_SEARCH_QUERY', payload: string }
     | { type: 'TOGGLE_FAVORITES_ONLY' }
-    | { type: 'SELECT_ENTRY', payload: ClipboardEntry | null }
+    | { type: 'SELECT_CLIPBOARD_ENTRY', payload: ClipboardEntry | null }
     | { type: 'SET_SHORTCUT', payload: ShortcutConfig };
 
 const initialState: ClipboardState = {
@@ -29,7 +29,7 @@ const initialState: ClipboardState = {
     isInitialized: false,
     searchQuery: '',
     showFavoritesOnly: false,
-    selectedEntry: null,
+    selectedClipboardEntry: null,
     currentShortcut: DEFAULT_SHORTCUT,
 };
 
@@ -43,8 +43,8 @@ function clipboardReducer(state: ClipboardState, action: ClipboardAction): Clipb
             return {...state, searchQuery: action.payload};
         case 'TOGGLE_FAVORITES_ONLY':
             return {...state, showFavoritesOnly: !state.showFavoritesOnly};
-        case 'SELECT_ENTRY':
-            return {...state, selectedEntry: action.payload};
+        case 'SELECT_CLIPBOARD_ENTRY':
+            return {...state, selectedClipboardEntry: action.payload};
         case 'SET_SHORTCUT':
             return {...state, currentShortcut: action.payload};
         default:
@@ -66,11 +66,15 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
     const [state, dispatch] = useReducer(clipboardReducer, initialState);
 
     const refreshItems = useCallback(async () => {
-        const clipboardItems = await clipboardDatabase.getClipboardEntries({
-            favoritesOnly: state.showFavoritesOnly,
-            searchQuery: state.searchQuery
-        });
-        dispatch({type: 'SET_CLIPBOARD_ITEMS', payload: clipboardItems});
+        try {
+            const clipboardItems = await clipboardDatabase.getClipboardEntries({
+                favoritesOnly: state.showFavoritesOnly,
+                searchQuery: state.searchQuery
+            });
+            dispatch({type: 'SET_CLIPBOARD_ITEMS', payload: clipboardItems});
+        } catch (error) {
+            Logger.error('Failed to refresh clipboard items:', error);
+        }
     }, [state.showFavoritesOnly, state.searchQuery]);
 
     const handleClipboardUpdate = useCallback(() => {
@@ -111,10 +115,23 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
 
     useEffect(() => {
         const initialize = async () => {
-            await initializeShortcut();
-            await clipboardService.startMonitoring();
-            await refreshItems();
-            dispatch({type: 'INITIALIZE'});
+            try {
+                await initializeShortcut();
+                await clipboardService.startMonitoring();
+                await refreshItems();
+
+                const clipboardItems = await clipboardDatabase.getClipboardEntries({
+                    favoritesOnly: false,
+                    searchQuery: ''
+                });
+
+                if (clipboardItems.length > 0) {
+                    dispatch({type: 'SELECT_CLIPBOARD_ENTRY', payload: clipboardItems[0]});
+                }
+                dispatch({type: 'INITIALIZE'});
+            } catch (error) {
+                Logger.error('Failed to initialize clipboard context:', error);
+            }
         };
 
         initialize();
@@ -125,7 +142,7 @@ export function ClipboardProvider({children}: { children: ReactNode }) {
             clipboardService.stopMonitoring();
             clipboardDatabase.close();
         };
-    }, [refreshItems, handleClipboardUpdate, initializeShortcut]);
+    }, []);
 
     useEffect(() => {
         if (state.isInitialized) {

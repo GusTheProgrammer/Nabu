@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "clipboardy",
-        "minWidth": 1000,
-        "minHeight": 600,
+        "minWidth": 500,
+        "minHeight": 300,
         "decorations": false
       }
     ],

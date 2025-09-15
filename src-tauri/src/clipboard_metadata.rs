@@ -1,3 +1,7 @@
+use serde::Serialize;
+use tauri::{command, State};
+use url_preview::PreviewService;
+
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn get_foreground_window_title() -> Option<String> {
@@ -31,7 +35,6 @@ pub fn get_clipboard_source_url() -> Option<String> {
             return None;
         }
 
-        // Always ensure clipboard gets closed
         let result = (|| {
             let format = RegisterClipboardFormatA(b"HTML Format\0".as_ptr());
             if IsClipboardFormatAvailable(format) == 0 {
@@ -53,12 +56,10 @@ pub fn get_clipboard_source_url() -> Option<String> {
             let slice = std::slice::from_raw_parts(ptr_data, size);
             let html = String::from_utf8_lossy(slice).to_string();
             GlobalUnlock(handle_ptr);
-
-            // Extract SourceURL - removed print statement and improved logic
+            
             for line in html.lines() {
                 if line.starts_with("SourceURL:") {
                     let url = line.trim_start_matches("SourceURL:").trim();
-                    // Return None if URL is empty instead of empty string
                     return if url.is_empty() {
                         None
                     } else {
@@ -66,10 +67,10 @@ pub fn get_clipboard_source_url() -> Option<String> {
                     };
                 }
             }
-            None // Return None instead of "No URL found" string
+            None
         })();
 
-        CloseClipboard(); // Always close clipboard
+        CloseClipboard();
         result
     }
 }
@@ -84,4 +85,33 @@ pub fn get_foreground_window_title() -> Option<String> {
 #[tauri::command]
 pub fn get_clipboard_source_url() -> Option<String> {
     None
+}
+
+#[derive(Serialize, Clone)]
+pub struct UrlPreview {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub image_url: Option<String>,
+    pub url: String,
+}
+
+#[command]
+pub async fn generate_url_preview(
+    url: String,
+    service: State<'_, PreviewService>,
+) -> Result<UrlPreview, String> {
+    match service.generate_preview(&url).await {
+        Ok(preview) => Ok(UrlPreview {
+            title: preview.title,
+            description: preview.description,
+            image_url: preview.image_url,
+            url: preview.url,
+        }),
+        Err(_) => Ok(UrlPreview {
+            title: None,
+            description: None,
+            image_url: None,
+            url,
+        }),
+    }
 }

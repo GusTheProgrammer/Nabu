@@ -1,4 +1,4 @@
-import {ArrowLeft, Keyboard, Power, Settings} from 'lucide-react'
+import {ArrowLeft, Keyboard, Power, Settings, Trash2} from 'lucide-react'
 import {useNavigate} from 'react-router';
 import {useEffect, useState} from 'react';
 import {disable, enable, isEnabled} from '@tauri-apps/plugin-autostart';
@@ -8,13 +8,25 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/compo
 import {Switch} from '@/components/ui/switch'
 import {ThemeToggle} from '@/components/theme-toggle'
 import {ToggleShortcut} from '@/components/settings/toggle-shortcut'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from '@/components/ui/dialog'
 import clipboardDatabase from '@/lib/db'
 import {DEFAULT_AUTO_START, SETTING_KEYS} from '@/types/settings'
+import {scrollbarStyles} from '@/lib/utils';
 
 export default function SettingsPage() {
     const navigate = useNavigate();
     const [autoStart, setAutoStart] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     useEffect(() => {
         const loadAutoStartSetting = async () => {
@@ -42,8 +54,13 @@ export default function SettingsPage() {
         }
     };
 
+    const handleClearHistory = async () => {
+        await clipboardDatabase.clearAllEntries(true);
+        setIsConfirmOpen(false);
+    }
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className={`h-screen bg-background overflow-y-auto ${scrollbarStyles}`}>
             <div className="container max-w-2xl mx-auto py-6 px-4">
                 <div className="flex items-center gap-4 mb-8">
                     <Button variant="ghost" size="icon" onClick={() => navigate('/')} title="Back">
@@ -108,6 +125,51 @@ export default function SettingsPage() {
                         </CardHeader>
                         <CardContent className="pt-0">
                             <ToggleShortcut/>
+                        </CardContent>
+                    </Card>
+
+                    <Card className='mb-20'>
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                                    <Trash2 className="h-4 w-4 text-primary"/>
+                                </div>
+                                <div>
+                                    <CardTitle className="text-lg">History</CardTitle>
+                                    <CardDescription>Permanently delete all clipboard history</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full"
+                                    >
+                                        Clear History
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                        <DialogDescription>
+                                            This action cannot be undone. This will permanently delete your entire clipboard history.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                        </DialogClose>
+                                        <Button
+                                            variant="destructive"
+                                            onClick={handleClearHistory}
+                                        >
+                                            Confirm
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </CardContent>
                     </Card>
                 </div>

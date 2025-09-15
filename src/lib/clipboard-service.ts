@@ -17,11 +17,12 @@ import {
     writeRtf,
     writeText
 } from 'tauri-plugin-clipboard-api';
-import {invoke} from '@tauri-apps/api/core'
 
+import {safeInvoke} from '@/lib/utils';
 import clipboardDatabase from '@/lib/db';
 import Logger from '@/util/logger.ts';
 import {ClipboardCaptureOptions, ClipboardContentType, ClipboardEntry} from '@/types/clipboard.ts';
+import {detectSpecialTextType, getImageMetadata, parseWindowTitle} from '@/util/clipboard-parser';
 
 export const DEFAULT_CAPTURE_OPTIONS: ClipboardCaptureOptions = {
     text: true,
@@ -129,28 +130,32 @@ class ClipboardService {
 
     private async captureContent(contentType: ClipboardContentType): Promise<boolean> {
         try {
+            let currentContentType = contentType;
             let content = '';
             let preview = '';
             let sourceUrl = '';
             let metadata = '';
+            let plainTextContent = '';
 
-            switch (contentType) {
+            switch (currentContentType) {
                 case 'image':
                     content = await readImageBase64() || '';
                     if (content) {
-                        const paddingChars = content.endsWith('==') ? 2 : content.endsWith('=') ? 1 : 0;
-                        const sizeInBytes = Math.floor((content.length * 3 / 4) - paddingChars);
-                        preview = `[${Math.round(sizeInBytes / 1024)} KB]`;
+                        const {width, height, sizeKB} = await getImageMetadata(content);
+                        preview = `Image [${width}x${height}]`;
+                        metadata = `[${sizeKB} KB]`;
                     }
                     break;
                 case 'html':
                     content = await readHtml() || '';
-                    preview = await readText() || '';
-                    sourceUrl = await this.getClipboardSourceUrl();
+                    plainTextContent = await readText() || '';
+                    preview = plainTextContent;
+                    sourceUrl = await safeInvoke('get_clipboard_source_url') || '';
                     break;
                 case 'rtf':
                     content = await readRtf() || '';
-                    preview = await readText() || '';
+                    plainTextContent = await readText() || '';
+                    preview = plainTextContent;
                     break;
                 case 'file':
                     const files = await readFiles();
@@ -159,67 +164,45 @@ class ClipboardService {
                     break;
                 case 'text':
                     content = await readText() || '';
-                    preview = content.length > 100 ? content.substring(0, 100) + '...' : content;
+                    plainTextContent = content;
+                    preview = content;
                     break;
             }
 
-            if (!content || (this.lastCapturedContent.content === content && this.lastCapturedContent.contentType === contentType)) {
+            if (['text', 'html', 'rtf'].includes(currentContentType) && plainTextContent) {
+                 const specialType = detectSpecialTextType(plainTextContent);
+                 if (specialType.type !== 'text') {
+                     currentContentType = specialType.type;
+                 }
+            }
+
+            if (!content || (this.lastCapturedContent.content === content && this.lastCapturedContent.contentType === currentContentType)) {
                 return false;
             }
 
-            this.lastCapturedContent = {content, contentType};
-            let windowTitle = ''
-            let windowSource = ''
+            this.lastCapturedContent = {content, contentType: currentContentType};
+            let windowTitle = '';
+            let windowSource = '';
             try {
-                const windowInfo = await this.getCleanWindowTitle()
-                windowTitle = windowInfo.title
-                windowSource = windowInfo.source
+                const windowInfo = parseWindowTitle(await safeInvoke('get_foreground_window_title') || '');
+                windowTitle = windowInfo.title;
+                windowSource = windowInfo.source;
             } catch (e) {
-                windowTitle = ''
-                windowSource = ''
+                windowTitle = '';
+                windowSource = '';
             }
-            metadata = `[${windowTitle}] (${windowSource})`
-            return await clipboardDatabase.saveClipboardEntry(content, contentType, preview, metadata, sourceUrl);
+
+            const appMetadata = `[${windowTitle}] (${windowSource})`;
+            if (contentType === 'image') {
+                metadata = `${appMetadata} ${metadata}`;
+            } else {
+                metadata = appMetadata;
+            }
+
+            return await clipboardDatabase.saveClipboardEntry(content, currentContentType, preview, metadata, sourceUrl);
         } catch (error) {
             Logger.error(`Error capturing ${contentType}:`, error);
             return false;
-        }
-    }
-
-    async getForegroundWindowTitle(): Promise<string> {
-        try {
-            return (await invoke<string>('get_foreground_window_title')) || ''
-        } catch (error) {
-            Logger.error('Error getting window title:', error)
-            return ''
-        }
-    }
-
-    async getCleanWindowTitle(): Promise<{ title: string; source: string }> {
-        try {
-            const rawTitle = await this.getForegroundWindowTitle()
-            if (!rawTitle) return {title: '', source: ''}
-
-            const parts = rawTitle.split(' - ')
-            let source = ''
-            let title = rawTitle
-
-            if (parts.length > 1) {
-                source = parts[parts.length - 1].trim()
-
-                title = parts
-                    .slice(0, -1)
-                    .join(' - ')
-                    .replace(/\s*and \d+ more pages\s*/i, '')
-                    .replace(/\s*Personal\s*/i, '')
-                    .replace(/\s*-\s*$/, '')
-                    .trim()
-            }
-
-            return {title, source}
-        } catch (error) {
-            Logger.error('Error cleaning window title:', error)
-            return {title: '', source: ''}
         }
     }
 
@@ -231,7 +214,7 @@ class ClipboardService {
                     break;
                 case 'html':
                     const plainText = entry.preview || '';
-                    await writeHtmlAndText(entry.preview || '', plainText).catch(() => writeText(entry.preview || ''));
+                    await writeHtmlAndText(entry.content, plainText).catch(() => writeText(entry.preview || ''));
                     break;
                 case 'rtf':
                     await writeRtf(entry.content).catch(() => writeText(entry.content));
@@ -250,16 +233,6 @@ class ClipboardService {
         } catch (error) {
             Logger.error('Error copying to clipboard:', error);
             await writeText(entry.preview || '');
-        }
-    }
-
-    private async getClipboardSourceUrl(): Promise<string> {
-        try {
-            const url = await invoke<string>('get_clipboard_source_url');
-            return url || '';
-        } catch (error) {
-            Logger.error('Error getting clipboard SourceURL:', error);
-            return '';
         }
     }
 }

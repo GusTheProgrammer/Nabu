@@ -46,25 +46,28 @@ class ClipboardDatabase {
     }
 
     async getClipboardEntries({
-        limit = 100,
+        limit = 20,
         type,
         favoritesOnly = false,
-        searchQuery
+        searchQuery,
+        cursorId,
+        cursorTimestamp
     }: {
         limit?: number,
         type?: ClipboardContentType,
         favoritesOnly?: boolean,
-        searchQuery?: string
+        searchQuery?: string,
+        cursorId?: number,
+        cursorTimestamp?: string
     } = {}): Promise<ClipboardEntry[]> {
         await this.init();
         if (!this.db) return [];
 
         const conditions = [];
-        const params = [];
-        let paramIndex = 1;
+        const params: any[] = [];
 
         if (type) {
-            conditions.push(`content_type = $${paramIndex++}`);
+            conditions.push('content_type = ?');
             params.push(type);
         }
 
@@ -74,14 +77,19 @@ class ClipboardDatabase {
 
         if (searchQuery?.trim()) {
             const trimmedQuery = searchQuery.trim();
-            conditions.push(`(content LIKE $${paramIndex} OR preview LIKE $${paramIndex++})`);
-            params.push(`%${trimmedQuery}%`);
+            conditions.push('(content LIKE ? OR preview LIKE ?)');
+            params.push(`%${trimmedQuery}%`, `%${trimmedQuery}%`);
+        }
+
+        if (cursorId && cursorTimestamp) {
+            conditions.push('(last_copied_at < ? OR (last_copied_at = ? AND id < ?))');
+            params.push(cursorTimestamp, cursorTimestamp, cursorId);
         }
 
         const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
-
         params.push(limit);
-        const query = `SELECT * FROM clipboard_entries${whereClause} ORDER BY last_copied_at DESC LIMIT $${paramIndex}`;
+
+        const query = `SELECT * FROM clipboard_entries${whereClause} ORDER BY last_copied_at DESC, id DESC LIMIT ?`;
 
         return this.mapToClipboardEntry(await this.db.select(query, params));
     }
