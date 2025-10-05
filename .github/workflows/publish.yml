@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
-    uses: ./build.yml
+    permissions:
+        contents: write
+    uses: ./.github/workflows/build.yml
     with:
       publish: true
       prerelease: true

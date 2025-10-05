@@ -1,7 +1,22 @@
-# Tauri + React + Typescript
+<h1 align="center">
+  <img src="src-tauri/icons/icon.png" alt="logo" height="32" style="vertical-align:middle; margin-right:8px;" />
+  clipboardy
+</h1>
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+[![Build](https://github.com/GusTheProgrammer/clipboardy/actions/workflows/publish.yml/badge.svg)](https://github.com/GusTheProgrammer/clipboardy/actions/workflows/publish.yml)
 
-## Recommended IDE Setup
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+> a lightweight cross-platform clipboard manager
+
+## Install
+
+```sh
+pnpm install
+```
+
+## Usage
+
+```sh
+pnpm run tauri dev
+```
+ 
