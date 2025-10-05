@@ -5,16 +5,27 @@ use url_preview::PreviewService;
 mod clipboard_metadata;
 mod shortcuts;
 mod tray;
+mod visibility;
+
+#[cfg(target_os = "macos")]
+mod panel;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec!["--flag1", "--flag2"]),
         ))
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_prevent_default::debug())
+        .plugin(tauri_plugin_prevent_default::debug());
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_nspanel::init());
+    }
+
+    builder
         .setup(|app| {
             let app_handle = app.handle();
 
@@ -22,6 +33,13 @@ pub fn run() {
             tray::setup_tray(app)?;
             shortcuts::setup_shortcut_handler(&app_handle)?;
             app.manage(PreviewService::new());
+
+            #[cfg(target_os = "macos")] // Hide app icon in Dock
+            {
+                use tauri::ActivationPolicy;
+                app.set_activation_policy(ActivationPolicy::Accessory);
+                panel::setup_panel(app);
+            }
 
             Ok(())
         })
@@ -33,6 +51,7 @@ pub fn run() {
             clipboard_metadata::get_foreground_window_title,
             clipboard_metadata::get_clipboard_source_url,
             clipboard_metadata::generate_url_preview,
+            clipboard_metadata::paste,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

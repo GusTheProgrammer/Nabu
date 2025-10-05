@@ -1,5 +1,8 @@
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use serde::Serialize;
-use tauri::{command, State};
+use std::time::Duration;
+use tauri::{command, AppHandle, State};
+use tokio::time::sleep;
 use url_preview::PreviewService;
 
 #[cfg(target_os = "windows")]
@@ -56,7 +59,7 @@ pub fn get_clipboard_source_url() -> Option<String> {
             let slice = std::slice::from_raw_parts(ptr_data, size);
             let html = String::from_utf8_lossy(slice).to_string();
             GlobalUnlock(handle_ptr);
-            
+
             for line in html.lines() {
                 if line.starts_with("SourceURL:") {
                     let url = line.trim_start_matches("SourceURL:").trim();
@@ -114,4 +117,32 @@ pub async fn generate_url_preview(
             url,
         }),
     }
+}
+
+#[command]
+pub async fn paste(app: AppHandle) -> Result<(), String> {
+    let app_clone = app.clone();
+    app.run_on_main_thread(move || {
+        let _ = crate::visibility::hide_panel(&app_clone);
+    })
+    .map_err(|e| e.to_string())?;
+
+    sleep(Duration::from_millis(100)).await;
+
+    #[cfg(target_os = "macos")]
+    let modifier = Key::Meta;
+
+    #[cfg(not(target_os = "macos"))]
+    let modifier = Key::Control;
+
+    app.run_on_main_thread(move || {
+        let mut enigo = Enigo::new(&Settings::default()).unwrap();
+
+        enigo.key(modifier, Direction::Press).unwrap();
+        enigo.key(Key::Unicode('v'), Direction::Click).unwrap();
+        enigo.key(modifier, Direction::Release).unwrap();
+    })
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

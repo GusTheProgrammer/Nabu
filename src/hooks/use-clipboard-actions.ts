@@ -1,170 +1,108 @@
-import React, {useCallback, useEffect, useRef} from 'react';
-import {useVirtualizer} from '@tanstack/react-virtual';
+import { MouseEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
-import {useClipboard} from '@/clipboard-context.tsx';
-import {ClipboardEntry} from '@/types/clipboard.ts';
-import clipboardService from '@/lib/clipboard-service.ts';
-import clipboardDatabase from '@/lib/db.ts';
-
-const BATCH_SIZE = 20;
+import { useClipboardContext } from '@/clipboard-context';
+import { ClipboardEntry } from '@/types/clipboard';
+import clipboardService from '@/lib/clipboard-service';
+import clipboardDatabase from '@/lib/db';
+import Logger from '@/util/logger';
+import { DEFAULT_SHORTCUT, SETTING_KEYS, ShortcutConfig } from '@/types/settings';
+import { safeInvoke } from '@/lib/utils';
 
 export const useClipboardActions = () => {
-    const {state, dispatch, refreshItems} = useClipboard();
-    const {items, selectedClipboardEntry, showFavoritesOnly, searchQuery} = state;
+  const { state, dispatch } = useClipboardContext();
+  const { selectedClipboardEntry } = state;
+  const queryClient = useQueryClient();
 
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [hasMore, setHasMore] = React.useState(true);
+  const invalidateClipboard = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['clipboardEntries'] });
+  };
 
-    /*          Actions          */
-    const handleCopy = useCallback(async (item: ClipboardEntry) => {
-        await clipboardService.copyToClipboard(item);
-        await refreshItems();
-    }, [refreshItems]);
+  const copyEntry = async (entry: ClipboardEntry) => {
+    try {
+      await clipboardService.copyToClipboard(entry);
+      await invalidateClipboard();
+    } catch (error) {
+      Logger.error(`Failed to copy entry with ID ${entry.id}:`, error);
+    }
+  };
 
-    const handleEntryClick = useCallback((entry: ClipboardEntry) => {
-        if (selectedClipboardEntry?.id === entry.id) {
-            handleCopy(entry);
-        } else {
-            dispatch({type: 'SELECT_CLIPBOARD_ENTRY', payload: entry});
-        }
-    }, [selectedClipboardEntry, dispatch, handleCopy]);
+  const selectOrCopyEntry = async (entry: ClipboardEntry) => {
+    if (selectedClipboardEntry?.id === entry.id) {
+      await copyEntry(entry);
+    } else {
+      dispatch({ type: 'SELECT_CLIPBOARD_ENTRY', payload: entry });
+    }
+  };
 
-    const handleToggleFavorite = useCallback(async (id: number, event: React.MouseEvent) => {
-        event.stopPropagation();
-        await clipboardDatabase.toggleFavorite(id);
-        await refreshItems();
-    }, [refreshItems]);
+  const pasteEntry = async (entry: ClipboardEntry) => {
+    await clipboardService.pasteEntry(entry);
+  };
 
-    const handleDelete = useCallback(async (id: number, event?: React.MouseEvent) => {
-        event?.stopPropagation();
-        await clipboardDatabase.deleteClipboardEntry(id);
-        await refreshItems();
-    }, [refreshItems]);
+  const toggleEntryFavorite = async (id: number, event: MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await clipboardDatabase.toggleFavorite(id);
+      await invalidateClipboard();
+    } catch (error) {
+      Logger.error(`Failed to toggle favorite for entry with ID ${id}:`, error);
+    }
+  };
 
-    const handleClearHistory = useCallback(async () => {
-        // TODO: Replace with a proper dialog lmao
-        if (confirm('Clear clipboard history? Favorites will be kept.')) {
-            await clipboardDatabase.clearAllEntries(true);
-            await refreshItems();
-        }
-    }, [refreshItems]);
+  const deleteEntry = async (id: number, event?: MouseEvent) => {
+    event?.stopPropagation();
+    try {
+      await clipboardDatabase.deleteClipboardEntry(id);
+      await invalidateClipboard();
+    } catch (error) {
+      Logger.error(`Failed to delete entry with ID ${id}:`, error);
+    }
+  };
 
-    const handleToggleFavoritesFilter = useCallback(() => {
-        dispatch({type: 'TOGGLE_FAVORITES_ONLY'});
-    }, [dispatch]);
+  const toggleFavoritesFilter = () => {
+    dispatch({ type: 'TOGGLE_FAVORITES_ONLY' });
+  };
 
-
-    /*        Scroll Handler       */
-    const rowVirtualizer = useVirtualizer({
-        count: hasMore ? items.length + 1 : items.length,
-        getScrollElement: () => containerRef.current,
-        estimateSize: () => 56,
-        overscan: 5,
+  /*          Shortcuts          */
+  const applyShortcut = async (shortcut: ShortcutConfig) => {
+    await safeInvoke('change_shortcut', {
+      modifiers: shortcut.modifiers,
+      key: shortcut.key,
     });
+    dispatch({ type: 'SET_SHORTCUT', payload: shortcut });
+  };
 
-    const loadMore = useCallback(async () => {
-        if (isLoading || !hasMore) return;
-        setIsLoading(true);
+  const updateShortcut = async (shortcut: ShortcutConfig) => {
+    try {
+      await clipboardDatabase.setSetting(SETTING_KEYS.TOGGLE_SHORTCUT, shortcut);
+      await applyShortcut(shortcut);
+    } catch (error) {
+      Logger.error('Failed to update shortcut:', error);
+      throw error;
+    }
+  };
 
-        try {
-            const lastItem = items.at(-1);
-            const moreItems = await clipboardDatabase.getClipboardEntries({
-                limit: BATCH_SIZE,
-                favoritesOnly: showFavoritesOnly,
-                searchQuery,
-                cursorId: lastItem?.id,
-                cursorTimestamp: lastItem?.lastCopiedAt
-            });
+  const initializeShortcut = async () => {
+    try {
+      const savedShortcut = await clipboardDatabase.getSetting<ShortcutConfig>(
+        SETTING_KEYS.TOGGLE_SHORTCUT,
+        DEFAULT_SHORTCUT
+      );
+      await applyShortcut(savedShortcut);
+    } catch (error) {
+      Logger.error('Failed to initialize shortcut:', error);
+    }
+  };
 
-            if (moreItems.length < BATCH_SIZE) {
-                setHasMore(false);
-            }
-            dispatch({type: 'SET_CLIPBOARD_ITEMS', payload: [...items, ...moreItems]});
-        } catch (error) {
-            console.error('Failed to load more items:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [isLoading, hasMore, items, showFavoritesOnly, searchQuery, dispatch]);
-
-    useEffect(() => {
-        const loadInitial = async () => {
-            setIsLoading(true);
-            setHasMore(true);
-            try {
-                const initialItems = await clipboardDatabase.getClipboardEntries({
-                    limit: BATCH_SIZE,
-                    favoritesOnly: showFavoritesOnly,
-                    searchQuery
-                });
-                dispatch({type: 'SET_CLIPBOARD_ITEMS', payload: initialItems});
-                if (initialItems.length > 0) {
-                    dispatch({type: 'SELECT_CLIPBOARD_ENTRY', payload: initialItems[0]});
-                }
-                if (initialItems.length < BATCH_SIZE) {
-                    setHasMore(false);
-                }
-            } catch (error) {
-                console.error('Failed to load initial items:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadInitial();
-    }, [showFavoritesOnly, searchQuery, dispatch]);
-
-    useEffect(() => {
-        const lastItem = rowVirtualizer.getVirtualItems().at(-1);
-        if (lastItem && lastItem.index >= items.length - 1 && hasMore && !isLoading) {
-            loadMore();
-        }
-    }, [rowVirtualizer.getVirtualItems(), hasMore, isLoading, items.length, loadMore]);
-
-    useEffect(() => {
-        if (!selectedClipboardEntry) return;
-        const index = items.findIndex(item => item.id === selectedClipboardEntry.id);
-        if (index !== -1) {
-            rowVirtualizer.scrollToIndex(index, {align: 'auto'});
-        }
-    }, [selectedClipboardEntry]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!items.length) return;
-            if (e.key === 'Enter' && selectedClipboardEntry) {
-                e.preventDefault();
-                handleCopy(selectedClipboardEntry);
-                return;
-            }
-
-            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-            e.preventDefault();
-
-            const currentIndex = selectedClipboardEntry ? items.findIndex(item => item.id === selectedClipboardEntry.id) : -1;
-            const delta = e.key === 'ArrowDown' ? 1 : -1;
-            const nextIndex = (currentIndex + delta + items.length) % items.length;
-            dispatch({type: 'SELECT_CLIPBOARD_ENTRY', payload: items[nextIndex]});
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [items, selectedClipboardEntry, dispatch, handleCopy]);
-
-    return {
-        handleCopy,
-        handleToggleFavorite,
-        handleEntryClick,
-        handleDelete,
-        handleClearHistory,
-        handleToggleFavoritesFilter,
-
-        containerRef,
-        rowVirtualizer,
-        items,
-        selectedClipboardEntry,
-        isLoading,
-        hasMore,
-        showFavoritesOnly,
-    };
-}
+  return {
+    invalidateClipboard,
+    copyEntry,
+    selectOrCopyEntry,
+    pasteEntry,
+    toggleEntryFavorite,
+    deleteEntry,
+    toggleFavoritesFilter,
+    initializeShortcut,
+    updateShortcut,
+  };
+};

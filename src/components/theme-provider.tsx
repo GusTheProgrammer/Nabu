@@ -1,41 +1,56 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'system';
+import { type ColorTheme, DEFAULT_THEME, THEMES } from '@/types/theme';
+
+type Mode = 'dark' | 'light' | 'system';
 
 type ThemeProviderProps = {
   children: React.ReactNode;
-  defaultTheme?: Theme;
-  storageKey?: string;
+  defaultMode?: Mode;
+  defaultColorTheme?: ColorTheme;
+  modeStorageKey?: string;
+  themeStorageKey?: string;
 };
 
 type ThemeProviderState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  mode: Mode;
+  colorTheme: ColorTheme;
+  setMode: (mode: Mode) => void;
+  setColorTheme: (theme: ColorTheme) => void;
 };
 
 const initialState: ThemeProviderState = {
-  theme: 'system',
-  setTheme: () => null,
+  mode: 'system',
+  colorTheme: DEFAULT_THEME,
+  setMode: () => null,
+  setColorTheme: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
+  defaultMode = 'system',
+  defaultColorTheme = DEFAULT_THEME,
+  modeStorageKey = 'vite-ui-mode',
+  themeStorageKey = 'vite-ui-color-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  const [mode, setMode] = useState<Mode>(
+    () => (localStorage.getItem(modeStorageKey) as Mode) || defaultMode
   );
+
+  const [colorTheme, setColorTheme] = useState<ColorTheme>(() => {
+    const stored = localStorage.getItem(themeStorageKey) as ColorTheme;
+    return THEMES.find((t) => t.name === stored) ? stored : defaultColorTheme;
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
 
     root.classList.remove('light', 'dark');
 
-    if (theme === 'system') {
+    if (mode === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
         : 'light';
@@ -44,14 +59,29 @@ export function ThemeProvider({
       return;
     }
 
-    root.classList.add(theme);
-  }, [theme]);
+    root.classList.add(mode);
+  }, [mode]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (colorTheme) {
+      root.setAttribute('data-theme', colorTheme);
+    } else {
+      root.removeAttribute('data-theme');
+    }
+  }, [colorTheme]);
 
   const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    mode,
+    colorTheme,
+    setMode: (mode: Mode) => {
+      localStorage.setItem(modeStorageKey, mode);
+      setMode(mode);
+    },
+    setColorTheme: (theme: ColorTheme) => {
+      localStorage.setItem(themeStorageKey, theme);
+      setColorTheme(theme);
     },
   };
 

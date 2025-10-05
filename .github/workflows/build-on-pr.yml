@@ -1,0 +1,13 @@
+name: 'build-on-pr'
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release
+
+jobs:
+  build:
+    uses: ./build.yml
+    with:
+      publish: false
