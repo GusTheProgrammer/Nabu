@@ -6,6 +6,7 @@ mod clipboard_metadata;
 mod shortcuts;
 mod tray;
 mod visibility;
+mod win_shortcut;
 
 #[cfg(target_os = "macos")]
 mod panel;
@@ -52,6 +53,9 @@ pub fn run() {
             clipboard_metadata::get_clipboard_source_url,
             clipboard_metadata::generate_url_preview,
             clipboard_metadata::paste,
+            win_shortcut::toggle_windows_shortcut,
+            win_shortcut::get_windows_shortcut_status,
+            win_shortcut::is_admin,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

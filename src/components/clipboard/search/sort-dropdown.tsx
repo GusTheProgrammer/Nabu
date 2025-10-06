@@ -10,9 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TooltipButton } from '@/components/ui/tooltip-button.tsx';
-import { useClipboardContext } from '@/clipboard-context.tsx';
-import { SORT_OPTIONS, SortBy, SortDirection } from '@/types/clipboard.ts';
+import { TooltipButton } from '@/components/ui/tooltip-button';
+import { useClipboardContext } from '@/clipboard-context';
+import { SORT_OPTIONS, SortBy, SortDirection } from '@/types/clipboard';
 
 export default function SortDropdown() {
   const { state, dispatch } = useClipboardContext();

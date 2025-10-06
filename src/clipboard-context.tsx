@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext, useMemo, useReducer } from 'react';
 
 import { ClipboardContentType, ClipboardEntry, SortBy, SortDirection } from '@/types/clipboard';
-import { DEFAULT_SHORTCUT, ShortcutConfig } from '@/types/settings';
+import { DEFAULT_LAUNCH_SHORTCUT, ShortcutConfig } from '@/types/shortcuts';
 
 interface ClipboardState {
   searchQuery: string;
@@ -29,7 +29,7 @@ const initialState: ClipboardState = {
   sortDirection: 'DESC',
   showFavoritesOnly: false,
   selectedClipboardEntry: null,
-  currentShortcut: DEFAULT_SHORTCUT,
+  currentShortcut: DEFAULT_LAUNCH_SHORTCUT,
 };
 
 function clipboardReducer(state: ClipboardState, action: ClipboardAction): ClipboardState {

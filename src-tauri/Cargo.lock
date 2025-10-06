@@ -658,6 +658,7 @@ dependencies = [
  "url-preview",
  "winapi",
  "windows-sys 0.52.0",
+ "winreg 0.55.0",
 ]
 
 [[package]]

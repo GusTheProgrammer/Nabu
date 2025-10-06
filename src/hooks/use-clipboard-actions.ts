@@ -6,8 +6,9 @@ import { ClipboardEntry } from '@/types/clipboard';
 import clipboardService from '@/lib/clipboard-service';
 import clipboardDatabase from '@/lib/db';
 import Logger from '@/util/logger';
-import { DEFAULT_SHORTCUT, SETTING_KEYS, ShortcutConfig } from '@/types/settings';
+import { SETTING_KEYS } from '@/types/settings';
 import { safeInvoke } from '@/lib/utils';
+import { DEFAULT_LAUNCH_SHORTCUT, ShortcutConfig } from '@/types/shortcuts';
 
 export const useClipboardActions = () => {
   const { state, dispatch } = useClipboardContext();
@@ -39,8 +40,8 @@ export const useClipboardActions = () => {
     await clipboardService.pasteEntry(entry);
   };
 
-  const toggleEntryFavorite = async (id: number, event: MouseEvent) => {
-    event.stopPropagation();
+  const toggleEntryFavorite = async (id: number, event?: MouseEvent) => {
+    event?.stopPropagation();
     try {
       await clipboardDatabase.toggleFavorite(id);
       await invalidateClipboard();
@@ -86,7 +87,7 @@ export const useClipboardActions = () => {
     try {
       const savedShortcut = await clipboardDatabase.getSetting<ShortcutConfig>(
         SETTING_KEYS.TOGGLE_SHORTCUT,
-        DEFAULT_SHORTCUT
+        DEFAULT_LAUNCH_SHORTCUT
       );
       await applyShortcut(savedShortcut);
     } catch (error) {

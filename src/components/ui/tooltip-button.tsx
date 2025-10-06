@@ -1,17 +1,17 @@
 import { type VariantProps } from 'class-variance-authority';
-import React from 'react';
+import { ComponentProps, ReactNode } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Kbd } from '@/components/ui/kbd';
 
-interface TooltipButtonProps
-  extends React.ComponentProps<'button'>,
-    VariantProps<typeof buttonVariants> {
-  tooltipContent: React.ReactNode;
+interface TooltipButtonProps extends ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
+  tooltipContent: ReactNode;
   tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
   tooltipAlign?: 'start' | 'center' | 'end';
   tooltipSideOffset?: number;
   asChild?: boolean;
+  kbd?: string;
 }
 
 export function TooltipButton({
@@ -20,6 +20,7 @@ export function TooltipButton({
   tooltipAlign = 'center',
   tooltipSideOffset = 4,
   children,
+  kbd,
   ...buttonProps
 }: TooltipButtonProps) {
   return (
@@ -28,7 +29,10 @@ export function TooltipButton({
         <Button {...buttonProps}>{children}</Button>
       </TooltipTrigger>
       <TooltipContent side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
-        {tooltipContent}
+        <div className='flex items-center gap-2'>
+          <span>{tooltipContent}</span>
+          {kbd && <Kbd>{kbd}</Kbd>}
+        </div>
       </TooltipContent>
     </Tooltip>
   );

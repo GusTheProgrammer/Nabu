@@ -1,3 +1,5 @@
+import { isMacOS } from '@/util/platform';
+
 export function parseWindowTitle(rawTitle: string): { title: string; source: string } {
   if (!rawTitle) return { title: '', source: '' };
 
@@ -63,4 +65,24 @@ export function detectSpecialType(text: string): {
     return { type: 'color', value: trimmedText };
   }
   return { type: 'text', value: text };
+}
+
+export function formatShortcut(modifiers: string[], key: string): string[] {
+  const parts: string[] = [];
+
+  modifiers.forEach((mod) => {
+    if (mod === 'ctrl') parts.push(isMacOS() ? '⌃' : 'Ctrl');
+    if (mod === 'alt') parts.push(isMacOS() ? '⌥' : 'Alt');
+    if (mod === 'shift') parts.push(isMacOS() ? '⇧' : 'Shift');
+    if (mod === 'meta') parts.push(isMacOS() ? '⌘' : 'Win');
+  });
+
+  let keyDisplay = key.replace('Key', '').replace('Digit', '');
+  if (key.startsWith('Arrow')) {
+    keyDisplay = key.replace('Arrow', '');
+  }
+
+  parts.push(keyDisplay);
+
+  return parts;
 }

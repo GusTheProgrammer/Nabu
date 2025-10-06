@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { ClipboardPen } from 'lucide-react';
 
 import type { ReactNode } from 'react';
 
@@ -11,6 +11,13 @@ import DefaultPreview from '@/components/clipboard/preview/default-preview';
 import ImagePreview from '@/components/clipboard/preview/image-preview';
 import EmailPreview from '@/components/clipboard/preview/email-preview';
 import ClipboardActions from '@/components/clipboard/clipboard-actions';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 
 type ValueType = string | number | null | undefined;
 
@@ -27,10 +34,15 @@ const ClipboardPreview = () => {
   if (!selectedClipboardEntry) {
     return (
       <div className='flex-1 flex items-center justify-center'>
-        <div className='text-center'>
-          <FileText className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-          <p className='text-muted-foreground'>Select an entry to view details</p>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <ClipboardPen className='h-12 w-12' />
+            </EmptyMedia>
+            <EmptyTitle>No Entry Selected</EmptyTitle>
+            <EmptyDescription>Select an entry to view details</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }

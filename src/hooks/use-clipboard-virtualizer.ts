@@ -5,11 +5,11 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useClipboardContext } from '@/clipboard-context';
 import clipboardDatabase from '@/lib/db';
 import { ClipboardEntry } from '@/types/clipboard';
-import useDebounce from '@/hooks/use-debounce.ts';
+import useDebounce from '@/hooks/use-debounce';
 
 const BATCH_SIZE = 20;
 const ESTIMATE_SIZE = () => 50;
-const OVERSCAN = 5;
+const OVERSCAN = 10;
 
 type PageParam = { id: number; cursorValue: string | number } | undefined;
 
@@ -99,6 +99,7 @@ export default function useClipboardVirtualizer() {
     isLoading,
     hasNextPage,
     isFetchingNextPage,
+    fetchNextPage,
     showFavoritesOnly,
     error,
   };

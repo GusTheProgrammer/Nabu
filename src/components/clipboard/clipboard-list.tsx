@@ -1,13 +1,37 @@
-import { FileText } from 'lucide-react';
+import { LucideClipboardList } from 'lucide-react';
 
 import { scrollbarStyles } from '@/lib/utils';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import ClipboardDetail from '@/components/clipboard/clipboard-detail';
 import useClipboardVirtualizer from '@/hooks/use-clipboard-virtualizer';
-import ClipboardItemSkeleton from '@/components/clipboard/skeleton/ClipboardEntrySkeleton.tsx';
+import ClipboardItemSkeleton from '@/components/clipboard/skeleton/ClipboardEntrySkeleton';
+import useKeyboardNavigation from '@/hooks/use-keyboard-navigation';
 
 const ClipboardList = () => {
-  const { containerRef, isLoading, clipboardEntries, hasNextPage, rowVirtualizer } =
-    useClipboardVirtualizer();
+  const {
+    containerRef,
+    isLoading,
+    clipboardEntries,
+    hasNextPage,
+    rowVirtualizer,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useClipboardVirtualizer();
+
+  useKeyboardNavigation({
+    clipboardEntries,
+    rowVirtualizer,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isEnabled: !isLoading,
+  });
 
   const items = rowVirtualizer.getVirtualItems();
 
@@ -23,9 +47,16 @@ const ClipboardList = () => {
 
   if (!isLoading && clipboardEntries.length === 0) {
     return (
-      <div className='flex flex-1 flex-col items-center justify-center text-muted-foreground p-4 text-center'>
-        <FileText className='h-12 w-12 mb-2 opacity-30' />
-        <p>No clipboard items found</p>
+      <div className='flex flex-1 flex-col items-center justify-center p-4'>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <LucideClipboardList className='h-12 w-12' />
+            </EmptyMedia>
+            <EmptyTitle>No Clipboard Entries Found</EmptyTitle>
+            <EmptyDescription>No items yet, or no results for your search.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }

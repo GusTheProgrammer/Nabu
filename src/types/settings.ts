@@ -1,3 +1,5 @@
+import { KEYBOARD_SHORTCUTS, ShortcutConfig } from './shortcuts';
+
 export interface PanelLayout {
   leftPanelSize: number;
   rightPanelSize: number;
@@ -5,9 +7,10 @@ export interface PanelLayout {
   isFilterSidebarCollapsed?: boolean;
 }
 
-export interface ShortcutConfig {
-  modifiers: string[];
-  key: string;
+export interface KeyboardNavigationSettings {
+  shortcuts: Record<string, ShortcutConfig>;
+  pageSize: number;
+  prefetchThreshold: number;
 }
 
 export const DEFAULT_PANEL_LAYOUT: PanelLayout = {
@@ -17,9 +20,15 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayout = {
   isFilterSidebarCollapsed: false,
 };
 
-export const DEFAULT_SHORTCUT: ShortcutConfig = {
-  modifiers: ['ctrl', 'shift'],
-  key: 'Space',
+export const DEFAULT_KEYBOARD_NAVIGATION: KeyboardNavigationSettings = {
+  shortcuts: Object.fromEntries(
+    Object.entries(KEYBOARD_SHORTCUTS).map(([key, { modifiers, key: keyCode }]) => [
+      key,
+      { modifiers, key: keyCode },
+    ])
+  ),
+  pageSize: 10,
+  prefetchThreshold: 3,
 };
 
 export const DEFAULT_AUTO_START = false;
@@ -31,4 +40,5 @@ export const SETTING_KEYS = {
   FILTER_SIDEBAR_COLLAPSED: 'filter_sidebar_open',
   TOGGLE_SHORTCUT: 'toggle_shortcut',
   AUTO_START: 'auto_start',
+  KEYBOARD_NAVIGATION: 'keyboard_navigation',
 };

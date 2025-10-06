@@ -5,7 +5,6 @@
 
 [![Build](https://github.com/GusTheProgrammer/clipboardy/actions/workflows/publish.yml/badge.svg)](https://github.com/GusTheProgrammer/clipboardy/actions/workflows/publish.yml)
 
-
 > a lightweight cross-platform clipboard manager
 
 ## Install
@@ -19,4 +18,3 @@ pnpm install
 ```sh
 pnpm run tauri dev
 ```
- 
