@@ -88,7 +88,7 @@ class ClipboardDatabase {
 
     if (searchQuery?.trim()) {
       const trimmedQuery = searchQuery.trim();
-      conditions.push('(content LIKE ? OR preview LIKE ?)');
+      conditions.push('(content_type != \"image\" AND (content LIKE ? OR preview LIKE ?))');
       params.push(`%${trimmedQuery}%`, `%${trimmedQuery}%`);
     }
 

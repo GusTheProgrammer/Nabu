@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext, useMemo, useReducer } from 'react';
 
 import { ClipboardContentType, ClipboardEntry, SortBy, SortDirection } from '@/types/clipboard';
-import { DEFAULT_LAUNCH_SHORTCUT, ShortcutConfig } from '@/types/shortcuts';
+import { DEFAULT_SHORTCUTS, type ShortcutDefinition } from '@/types/shortcuts';
 
 interface ClipboardState {
   searchQuery: string;
@@ -10,7 +10,7 @@ interface ClipboardState {
   sortDirection: SortDirection;
   showFavoritesOnly: boolean;
   selectedClipboardEntry: ClipboardEntry | null;
-  currentShortcut: ShortcutConfig;
+  currentShortcut: ShortcutDefinition;
 }
 
 type ClipboardAction =
@@ -20,7 +20,7 @@ type ClipboardAction =
   | { type: 'SET_SEARCH_SORT'; payload: { sortBy: SortBy; sortDirection: SortDirection } }
   | { type: 'TOGGLE_FAVORITES_ONLY' }
   | { type: 'SELECT_CLIPBOARD_ENTRY'; payload: ClipboardEntry | null }
-  | { type: 'SET_SHORTCUT'; payload: ShortcutConfig };
+  | { type: 'SET_SHORTCUT'; payload: ShortcutDefinition };
 
 const initialState: ClipboardState = {
   searchQuery: '',
@@ -29,7 +29,7 @@ const initialState: ClipboardState = {
   sortDirection: 'DESC',
   showFavoritesOnly: false,
   selectedClipboardEntry: null,
-  currentShortcut: DEFAULT_LAUNCH_SHORTCUT,
+  currentShortcut: DEFAULT_SHORTCUTS.launch,
 };
 
 function clipboardReducer(state: ClipboardState, action: ClipboardAction): ClipboardState {

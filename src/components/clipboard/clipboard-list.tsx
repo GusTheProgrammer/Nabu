@@ -11,27 +11,10 @@ import {
 import ClipboardDetail from '@/components/clipboard/clipboard-detail';
 import useClipboardVirtualizer from '@/hooks/use-clipboard-virtualizer';
 import ClipboardItemSkeleton from '@/components/clipboard/skeleton/ClipboardEntrySkeleton';
-import useKeyboardNavigation from '@/hooks/use-keyboard-navigation';
 
 const ClipboardList = () => {
-  const {
-    containerRef,
-    isLoading,
-    clipboardEntries,
-    hasNextPage,
-    rowVirtualizer,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useClipboardVirtualizer();
-
-  useKeyboardNavigation({
-    clipboardEntries,
-    rowVirtualizer,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    isEnabled: !isLoading,
-  });
+  const { containerRef, isLoading, clipboardEntries, hasNextPage, rowVirtualizer } =
+    useClipboardVirtualizer();
 
   const items = rowVirtualizer.getVirtualItems();
 

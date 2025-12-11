@@ -1,4 +1,4 @@
-import { KEYBOARD_SHORTCUTS, ShortcutConfig } from './shortcuts';
+import { DEFAULT_SHORTCUTS, type ShortcutDefinition } from '@/types/shortcuts';
 
 export interface PanelLayout {
   leftPanelSize: number;
@@ -8,7 +8,7 @@ export interface PanelLayout {
 }
 
 export interface KeyboardNavigationSettings {
-  shortcuts: Record<string, ShortcutConfig>;
+  shortcuts: Record<string, ShortcutDefinition>;
   pageSize: number;
   prefetchThreshold: number;
 }
@@ -21,12 +21,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayout = {
 };
 
 export const DEFAULT_KEYBOARD_NAVIGATION: KeyboardNavigationSettings = {
-  shortcuts: Object.fromEntries(
-    Object.entries(KEYBOARD_SHORTCUTS).map(([key, { modifiers, key: keyCode }]) => [
-      key,
-      { modifiers, key: keyCode },
-    ])
-  ),
+  shortcuts: DEFAULT_SHORTCUTS,
   pageSize: 10,
   prefetchThreshold: 3,
 };
@@ -41,4 +36,4 @@ export const SETTING_KEYS = {
   TOGGLE_SHORTCUT: 'toggle_shortcut',
   AUTO_START: 'auto_start',
   KEYBOARD_NAVIGATION: 'keyboard_navigation',
-};
+} as const;

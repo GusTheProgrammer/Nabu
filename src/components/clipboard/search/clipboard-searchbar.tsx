@@ -1,12 +1,19 @@
 import { Filter, Star, X } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { useClipboardContext } from '@/clipboard-context';
 import { TooltipButton } from '@/components/ui/tooltip-button';
 import { useClipboardActions } from '@/hooks/use-clipboard-actions';
+import { useKeyboardShortcut } from '@/context/keyboard-context';
+import { useSetting } from '@/hooks/use-setting';
 import { cn } from '@/lib/utils';
 import SortDropdown from '@/components/clipboard/search/sort-dropdown';
+import {
+  DEFAULT_KEYBOARD_NAVIGATION,
+  KeyboardNavigationSettings,
+  SETTING_KEYS,
+} from '@/types/settings';
 
 const ClipboardSearchBar = ({
   toggleFilterSidebar,
@@ -15,9 +22,16 @@ const ClipboardSearchBar = ({
   toggleFilterSidebar: () => void;
   isFilterSidebarCollapsed: boolean | undefined;
 }) => {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { toggleFavoritesFilter } = useClipboardActions();
   const { state, dispatch } = useClipboardContext();
   const { searchQuery, showFavoritesOnly, searchFilters } = state;
+
+  const { value: settings } = useSetting<KeyboardNavigationSettings>(
+    SETTING_KEYS.KEYBOARD_NAVIGATION,
+    DEFAULT_KEYBOARD_NAVIGATION
+  );
+
   const placeholderText = useMemo(() => {
     if (!searchFilters || searchFilters.length === 0) {
       return 'Search Clipboard...';
@@ -27,6 +41,14 @@ const ClipboardSearchBar = ({
     );
     return `Search ${filterNames.join(', ')}...`;
   }, [searchFilters]);
+
+  useKeyboardShortcut(settings.shortcuts.focusSearch.key, () => searchInputRef.current?.focus(), {
+    modifiers: settings.shortcuts.focusSearch.modifiers,
+  });
+
+  useKeyboardShortcut(settings.shortcuts.toggleFilter.key, toggleFilterSidebar, {
+    modifiers: settings.shortcuts.toggleFilter.modifiers,
+  });
 
   return (
     <div className='p-2'>
@@ -40,7 +62,7 @@ const ClipboardSearchBar = ({
               'h-6 w-6 p-0 transition-all duration-200',
               !isFilterSidebarCollapsed && 'bg-accent text-accent-foreground'
             )}
-            tooltipContent='Filter by Type'
+            tooltipContent='Filter by Type (T)'
             tooltipSide='bottom'
           >
             <Filter className='h-4 w-4' />
@@ -48,6 +70,7 @@ const ClipboardSearchBar = ({
         </div>
 
         <Input
+          ref={searchInputRef}
           placeholder={placeholderText}
           value={searchQuery}
           onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}

@@ -4,7 +4,7 @@ import { useSetting } from '@/hooks/use-setting';
 import { DEFAULT_KEYBOARD_NAVIGATION, SETTING_KEYS } from '@/types/settings';
 import { ShortcutRecorder } from '@/components/settings/shortcuts/shortcut-recorder';
 import { WindowsClipboardShortcutToggle } from '@/components/settings/shortcuts/windows-clipboard-shortcut-toggle';
-import { KEYBOARD_SHORTCUTS } from '@/types/shortcuts';
+import { DEFAULT_SHORTCUTS } from '@/types/shortcuts';
 
 export function KeyboardNavigationShortcuts() {
   const { state } = useClipboardContext();
@@ -18,7 +18,7 @@ export function KeyboardNavigationShortcuts() {
   } = useSetting(SETTING_KEYS.KEYBOARD_NAVIGATION, DEFAULT_KEYBOARD_NAVIGATION, 300);
 
   const handleLaunchShortcutChange = async (modifiers: string[], key: string) => {
-    await updateShortcut({ modifiers, key });
+    await updateShortcut({ modifiers, key, label: DEFAULT_SHORTCUTS.launch.label });
   };
 
   const handleNavShortcutChange = async (shortcutKey: string, modifiers: string[], key: string) => {
@@ -26,7 +26,7 @@ export function KeyboardNavigationShortcuts() {
       ...navSettings,
       shortcuts: {
         ...navSettings.shortcuts,
-        [shortcutKey]: { modifiers, key },
+        [shortcutKey]: { ...navSettings.shortcuts[shortcutKey], modifiers, key },
       },
     });
   };
@@ -41,24 +41,26 @@ export function KeyboardNavigationShortcuts() {
         modifiers={currentShortcut.modifiers}
         keyCode={currentShortcut.key}
         onShortcutChange={handleLaunchShortcutChange}
-        label='Launch Clipboardy'
+        label={DEFAULT_SHORTCUTS.launch.label}
       />
 
-      {Object.entries(KEYBOARD_SHORTCUTS).map(([key, config]) => {
-        const shortcut = navSettings.shortcuts[key];
+      {Object.entries(DEFAULT_SHORTCUTS)
+        .filter(([key]) => key !== 'launch')
+        .map(([key, config]) => {
+          const shortcut = navSettings.shortcuts[key];
 
-        return (
-          <ShortcutRecorder
-            key={key}
-            modifiers={shortcut?.modifiers || []}
-            keyCode={shortcut?.key || config.key}
-            onShortcutChange={async (modifiers, keyCode) => {
-              await handleNavShortcutChange(key, modifiers, keyCode);
-            }}
-            label={config.label}
-          />
-        );
-      })}
+          return (
+            <ShortcutRecorder
+              key={key}
+              modifiers={shortcut?.modifiers || config.modifiers}
+              keyCode={shortcut?.key || config.key}
+              onShortcutChange={async (modifiers, keyCode) => {
+                await handleNavShortcutChange(key, modifiers, keyCode);
+              }}
+              label={config.label}
+            />
+          );
+        })}
 
       <div className='pt-2'>
         <WindowsClipboardShortcutToggle />

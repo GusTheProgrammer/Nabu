@@ -1,20 +1,15 @@
-export interface ShortcutConfig {
-  modifiers: string[];
-  key: string;
-}
-
-export interface KeyboardShortcut {
+export interface ShortcutDefinition {
   modifiers: string[];
   key: string;
   label: string;
 }
 
-export const DEFAULT_LAUNCH_SHORTCUT: ShortcutConfig = {
-  modifiers: ['ctrl', 'shift'],
-  key: 'Space',
-};
-
-export const KEYBOARD_SHORTCUTS: Record<string, KeyboardShortcut> = {
+export const DEFAULT_SHORTCUTS = {
+  launch: {
+    modifiers: ['ctrl', 'shift'],
+    key: 'Space',
+    label: 'Launch Clipboardy',
+  },
   navigateNext: {
     modifiers: [],
     key: 'ArrowDown',
@@ -55,4 +50,16 @@ export const KEYBOARD_SHORTCUTS: Record<string, KeyboardShortcut> = {
     key: 'KeyF',
     label: 'Toggle Favorite',
   },
+  focusSearch: {
+    modifiers: [],
+    key: 'Slash',
+    label: 'Focus Search',
+  },
+  toggleFilter: {
+    modifiers: [],
+    key: 'KeyT',
+    label: 'Toggle Filter',
+  },
 };
+
+export type ShortcutKey = keyof typeof DEFAULT_SHORTCUTS;

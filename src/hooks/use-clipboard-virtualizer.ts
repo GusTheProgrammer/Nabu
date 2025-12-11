@@ -3,9 +3,16 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { useClipboardContext } from '@/clipboard-context';
+import { useKeyboardShortcut } from '@/context/keyboard-context';
+import { useSetting } from '@/hooks/use-setting';
 import clipboardDatabase from '@/lib/db';
 import { ClipboardEntry } from '@/types/clipboard';
 import useDebounce from '@/hooks/use-debounce';
+import {
+  DEFAULT_KEYBOARD_NAVIGATION,
+  KeyboardNavigationSettings,
+  SETTING_KEYS,
+} from '@/types/settings';
 
 const BATCH_SIZE = 20;
 const ESTIMATE_SIZE = () => 50;
@@ -14,7 +21,11 @@ const OVERSCAN = 10;
 type PageParam = { id: number; cursorValue: string | number } | undefined;
 
 export default function useClipboardVirtualizer() {
-  const { state } = useClipboardContext();
+  const { value: settings } = useSetting<KeyboardNavigationSettings>(
+    SETTING_KEYS.KEYBOARD_NAVIGATION,
+    DEFAULT_KEYBOARD_NAVIGATION
+  );
+  const { state, dispatch } = useClipboardContext();
   const {
     selectedClipboardEntry,
     showFavoritesOnly,
@@ -90,6 +101,92 @@ export default function useClipboardVirtualizer() {
     isFetchingNextPage,
     rowVirtualizer.getVirtualItems(),
   ]);
+
+  const getSelectedIndex = () => {
+    if (!selectedClipboardEntry) return -1;
+    return clipboardEntries.findIndex((entry) => entry.id === selectedClipboardEntry?.id);
+  };
+
+  const selectAndScroll = (index: number) => {
+    const entry = clipboardEntries[index];
+    if (!entry) return;
+
+    dispatch({ type: 'SELECT_CLIPBOARD_ENTRY', payload: entry });
+    rowVirtualizer.scrollToIndex(index, { align: 'auto', behavior: 'auto' });
+  };
+
+  const prefetchIfNeeded = (index: number) => {
+    const isNearEnd = index >= clipboardEntries.length - settings.prefetchThreshold;
+    if (isNearEnd && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  const navigateNext = () => {
+    const currentIndex = getSelectedIndex();
+    const isAtEnd = currentIndex >= clipboardEntries.length - 1;
+
+    prefetchIfNeeded(currentIndex);
+
+    if (isAtEnd) {
+      if (!hasNextPage) selectAndScroll(0);
+    } else {
+      selectAndScroll(currentIndex + 1);
+    }
+  };
+
+  const navigatePrevious = () => {
+    const currentIndex = getSelectedIndex();
+
+    if (currentIndex <= 0) {
+      selectAndScroll(clipboardEntries.length - 1);
+    } else {
+      selectAndScroll(currentIndex - 1);
+    }
+  };
+
+  const navigatePageDown = () => {
+    const currentIndex = getSelectedIndex();
+    const nextIndex = Math.min(currentIndex + settings.pageSize, clipboardEntries.length - 1);
+
+    prefetchIfNeeded(nextIndex);
+    selectAndScroll(nextIndex);
+  };
+
+  const navigatePageUp = () => {
+    const currentIndex = getSelectedIndex();
+    const prevIndex = Math.max(currentIndex - settings.pageSize, 0);
+
+    selectAndScroll(prevIndex);
+  };
+
+  useEffect(() => {
+    if (clipboardEntries.length > 0 && !selectedClipboardEntry) {
+      dispatch({ type: 'SELECT_CLIPBOARD_ENTRY', payload: clipboardEntries[0] });
+    }
+  }, [clipboardEntries.length]);
+
+  const navigationEnabled = !isLoading && clipboardEntries.length > 0;
+
+  useKeyboardShortcut(settings.shortcuts.navigateNext.key, navigateNext, {
+    modifiers: settings.shortcuts.navigateNext.modifiers,
+    enabled: navigationEnabled,
+  });
+
+  useKeyboardShortcut(settings.shortcuts.navigatePrevious.key, navigatePrevious, {
+    modifiers: settings.shortcuts.navigatePrevious.modifiers,
+    enabled: navigationEnabled,
+  });
+
+  useKeyboardShortcut(settings.shortcuts.navigatePageDown.key, navigatePageDown, {
+    modifiers: settings.shortcuts.navigatePageDown.modifiers,
+    enabled: navigationEnabled,
+  });
+
+  useKeyboardShortcut(settings.shortcuts.navigatePageUp.key, navigatePageUp, {
+    modifiers: settings.shortcuts.navigatePageUp.modifiers,
+    enabled: navigationEnabled,
+  });
 
   return {
     containerRef,
