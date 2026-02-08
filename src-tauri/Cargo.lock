@@ -649,30 +649,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipboardy"
-version = "0.1.0"
-dependencies = [
- "enigo",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-nspanel",
- "tauri-plugin-autostart",
- "tauri-plugin-clipboard",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-opener",
- "tauri-plugin-os",
- "tauri-plugin-prevent-default",
- "tauri-plugin-sql",
- "tokio",
- "url-preview",
- "winapi",
- "windows-sys 0.52.0",
- "winreg 0.55.0",
-]
-
-[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2897,6 +2873,30 @@ dependencies = [
  "serde",
  "thiserror 2.0.17",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "nabu"
+version = "0.1.0"
+dependencies = [
+ "enigo",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-nspanel",
+ "tauri-plugin-autostart",
+ "tauri-plugin-clipboard",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-opener",
+ "tauri-plugin-os",
+ "tauri-plugin-prevent-default",
+ "tauri-plugin-sql",
+ "tokio",
+ "url-preview",
+ "winapi",
+ "windows-sys 0.52.0",
+ "winreg 0.55.0",
 ]
 
 [[package]]

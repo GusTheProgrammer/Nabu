@@ -29,7 +29,7 @@ export function TitleBar() {
       data-tauri-drag-region
       className='h-10 bg-background border-b border-border flex items-center justify-between px-4 select-none'
     >
-      <span className='font-medium'>Clipboardy</span>
+      <span className='font-medium'>Nabu</span>
 
       <div className='flex-1' data-tauri-drag-region />
 

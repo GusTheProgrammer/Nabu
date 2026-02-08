@@ -8,7 +8,7 @@ export const DEFAULT_SHORTCUTS = {
   launch: {
     modifiers: ['ctrl', 'shift'],
     key: 'Space',
-    label: 'Launch Clipboardy',
+    label: 'Launch Nabu',
   },
   navigateNext: {
     modifiers: [],
