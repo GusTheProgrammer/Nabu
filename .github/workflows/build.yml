@@ -10,11 +10,11 @@ on:
       tag-name:
         required: false
         type: string
-        default: 'app-v__VERSION__'
+        default: 'nabu-v__VERSION__'
       release-name:
         required: false
         type: string
-        default: 'App v__VERSION__'
+        default: 'Nabu v__VERSION__'
       release-body:
         required: false
         type: string
