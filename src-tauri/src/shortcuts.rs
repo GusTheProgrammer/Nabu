@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use tauri::{command, AppHandle, State};
+use tauri::{command, AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 pub struct AppState {
@@ -24,7 +24,11 @@ pub fn setup_shortcut_handler(app_handle: &AppHandle) -> Result<(), Box<dyn std:
         tauri_plugin_global_shortcut::Builder::new()
             .with_handler(move |_app, _shortcut, event| {
                 if let ShortcutState::Pressed = event.state() {
-                    let _ = crate::visibility::toggle_visibility(&shortcut_app_handle);
+                    if let Ok(was_shown) = crate::visibility::toggle_visibility(&shortcut_app_handle) {
+                        if was_shown {
+                            let _ = shortcut_app_handle.emit("window-triggered-by-shortcut", ());
+                        }
+                    }
                 }
             })
             .build(),

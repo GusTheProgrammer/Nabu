@@ -44,7 +44,7 @@ pub fn show_panel(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-pub fn toggle_visibility(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub fn toggle_visibility(app_handle: &AppHandle) -> Result<bool, Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     {
         use tauri_nspanel::ManagerExt;
@@ -53,8 +53,10 @@ pub fn toggle_visibility(app_handle: &AppHandle) -> Result<(), Box<dyn std::erro
             .map_err(|e| Box::<dyn std::error::Error>::from(format!("Panel error: {:?}", e)))?;
         if panel.is_visible() {
             hide_panel(app_handle)?;
+            Ok(false)
         } else {
             show_panel(app_handle)?;
+            Ok(true)
         }
     }
 
@@ -67,13 +69,15 @@ pub fn toggle_visibility(app_handle: &AppHandle) -> Result<(), Box<dyn std::erro
             match (is_visible, is_focused) {
                 (true, true) => {
                     hide_panel(app_handle)?;
+                    Ok(false)
                 }
                 (true, false) | (false, _) => {
                     show_panel(app_handle)?;
+                    Ok(true)
                 }
             }
+        } else {
+            Ok(false)
         }
     }
-
-    Ok(())
 }

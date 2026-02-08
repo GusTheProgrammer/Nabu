@@ -1,19 +1,40 @@
-<h1 align="center">
-  <img src="src-tauri/icons/icon.png" alt="logo" height="32" style="vertical-align:middle; margin-right:8px;" />
-  nabu
-</h1>
+<br />
+<div align="center">
+  <a href="https://github.com/GusTheProgrammer/Nabu">
+    <img src="src-tauri/icons/icon.svg" alt="Logo" width="80" height="80">
+  </a>
 
-[![Build](https://github.com/GusTheProgrammer/nabu/actions/workflows/publish.yml/badge.svg)](https://github.com/GusTheProgrammer/nabu/actions/workflows/publish.yml)
+  <h3 align="center">Nabu</h3>
 
-> a lightweight cross-platform clipboard manager
+  <p align="center">
+    A lightweight cross-platform clipboard manager built with Tauri and React.
+  </p>
 
-## Install
+  <p align="center">
+    <a href="https://github.com/GusTheProgrammer/Nabu/actions/workflows/publish.yml">
+      <img src="https://github.com/GusTheProgrammer/Nabu/actions/workflows/publish.yml/badge.svg" alt="Build">
+    </a>
+  </p>
+</div>
+ 
+## Installation
+
+Download the latest release for your platform from the [Releases page](https://github.com/GusTheProgrammer/Nabu/releases).
+
+
+## Development
+
+### Prerequisites
+
+Before getting started, make sure you have the required dependencies installed for your platform. Follow the [Tauri Prerequisites Guide](https://v2.tauri.app/start/prerequisites/).
+
+### Setup
 
 ```sh
 pnpm install
 ```
 
-## Usage
+### Running in Development Mode
 
 ```sh
 pnpm run tauri dev
