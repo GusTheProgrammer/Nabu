@@ -81,8 +81,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
       react-resizable-panels:
-        specifier: ^3.0.6
-        version: 3.0.6(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+        specifier: ^4.14.5
+        version: 4.14.5(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
       react-router:
         specifier: ^7.13.0
         version: 7.13.0(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -1638,6 +1638,7 @@ packages:
   eslint@9.39.1:
     resolution: {integrity: sha512-BhHmn2yNOFA9H9JmmIVKJmd288g9hrVRDkdoIgRCRuSySRUHH7r/DI6aAXW9T1WwUuY3DFgrcaqB+deURBLR5g==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -2217,11 +2218,11 @@ packages:
       '@types/react':
         optional: true
 
-  react-resizable-panels@3.0.6:
-    resolution: {integrity: sha512-b3qKHQ3MLqOgSS+FRYKapNkJZf5EQzuf6+RLiq1/IlTHw99YrZ2NJZLk4hQIzTnnIkRg2LUqyVinu6YWWpUYew==}
+  react-resizable-panels@4.14.5:
+    resolution: {integrity: sha512-AoHgoq3sGOfciPn2ahddFrBCqsitZLse8cJIYWblvE3kQ9z39IrhdlHCjnVRrDL8XcWqvA0u/t9nLZTfWePJ5A==}
     peerDependencies:
-      react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
 
   react-router@7.13.0:
     resolution: {integrity: sha512-PZgus8ETambRT17BUm/LL8lX3Of+oiLaPuVTRH3l1eLvSPpKO3AvhAEb5N7ihAFZQrYDqkvvWfFh9p0z9VsjLw==}
@@ -4657,7 +4658,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.27
 
-  react-resizable-panels@3.0.6(react-dom@19.2.2(react@19.2.2))(react@19.2.2):
+  react-resizable-panels@4.14.5(react-dom@19.2.2(react@19.2.2))(react@19.2.2):
     dependencies:
       react: 19.2.2
       react-dom: 19.2.2(react@19.2.2)
